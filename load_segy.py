@@ -17,6 +17,10 @@ def loadshots(directory_path):
             # Read the .su file into an ObsPy Stream object.
             stream = op.read(full_path, format="SU", unpack_trace_headers=True)
 
+            # Use SU headers to set the ObsPy trace headers
+            for trace in stream:
+                trace.stats.distance = abs(trace.stats.su.trace_header.distance_from_center_of_the_source_point_to_the_center_of_the_receiver_group)
+
             # Store the Stream object in the dictionary.
             streamdict[filename] = stream
 

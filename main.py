@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
-import gridsearch as gs
+import pick_gridsearch as gs
 import time
 
 # This script will use picked amplitudes of the primary and secondary seismic
