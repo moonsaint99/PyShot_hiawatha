@@ -28,3 +28,26 @@ def ricker_wavelet(frequency, duration, dt):
     return t, y
 
 
+def snell(theta1, mat1, mat2):
+    vp1 = mat1[1]
+    vp2 = mat2[1]
+    return np.arcsin(vp1/vp2 * np.sin(theta1))
+
+
+def compute_seismogram_2layer(t, source_wavelet, depth_interface, mat1, mat2, offset, dt):
+    # Calculate the angle of incidence
+    theta = np.arctan(offset / depth_interface)
+    # Calculate reflection coefficient
+    R = shuey_reflectivity(mat1, mat2, theta)
+
+    # Compute time of reflection
+    time_reflection = 2 * depth_interface / mat1[1] * np.cos(theta)
+    reflection_arrival = np.zeros_like(t)
+    reflection_arrival[int(time_reflection / dt)] = R
+
+    # Convolve source with reflection
+    seismogram = np.convolve(source_wavelet, reflection_arrival, mode='same')
+
+    return seismogram
+
+

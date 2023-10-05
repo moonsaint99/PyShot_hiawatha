@@ -59,7 +59,7 @@ def corrected_amplitude(trace, time):
 # The following function will correlate a gaussian curve of width 'width' with a trace, and return the value of this
 # correlation at a specified time 'time'.
 def correlate_gaussian(trace, width, time):
-pass
+    pass
 
 def worker_task(params):
     depth_index, velocity_index, depth, velocity, streamdict = params

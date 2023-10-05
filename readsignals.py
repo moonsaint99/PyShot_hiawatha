@@ -4,7 +4,8 @@ import numpy as np
 import os
 from load_segy import loadshots
 import matplotlib.pyplot as plt
-import waveform_gridsearch as wfgs
+import wf_gridsearch as wfgs
+import wf_model as wfm
 import multiprocessing
 import time
 
@@ -51,9 +52,17 @@ def main():
     ax.plot(distances, theoretical_times, color='black', linewidth=1)
     stackfig.show()
 
-    runtime_Start = time.time()
-    wfgs.depthvel_gridsearch_wf_plot(aquifer_streams, prior=[3630, 405])
-    print('Time taken: ' + str(time.time() - runtime_Start) + ' seconds')
+    dt = lithic_streams["33.su"][0].stats.delta
+    t_array = np.arange(0, 0.3, dt)
+    synthetic_source = wfm.ricker_wavelet(125, 0.025, dt)
+    synthetic = wfm.compute_seismogram_2layer(t_array, synthetic_source[1], 477, [1000, 3630, 3630/2], [2700, 5800, 5800/1.82], 50, lithic_streams["33.su"][0].stats.delta)
+    plt.plot(t_array, synthetic, color='black', linewidth=1)
+    plt.show()
+
+
+    # runtime_Start = time.time()
+    # wfgs.depthvel_gridsearch_wf_plot(aquifer_streams, prior=[3630, 405])
+    # print('Time taken: ' + str(time.time() - runtime_Start) + ' seconds')
 
 
 if __name__ == '__main__':
