@@ -4,7 +4,7 @@ import scipy as sp
 import time
 import obspy as op
 import multiprocessing
-
+import wf_model as wfm
 
 def refl_time(offset, angle, velocity, depth=405):
     refl_timing = 2*np.sqrt(
@@ -56,17 +56,13 @@ def corrected_amplitude(trace, time):
         return 0
 
 
-# The following function will correlate a gaussian curve of width 'width' with a trace, and return the value of this
-# correlation at a specified time 'time'.
-def correlate_gaussian(trace, width, time):
-    pass
-
-def worker_task(params):
+def amplitude_summing_task(params):
     depth_index, velocity_index, depth, velocity, streamdict = params
     sumsq = 0
     for filename, stream in streamdict.items():
         for trace in stream:
-            theor_timing = refl_time(trace.stats.distance, 0, velocity, depth)
+            angle = np.arctan(trace.stats.distance / depth)
+            theor_timing = refl_time(trace.stats.distance, angle, velocity, depth)
             if int(theor_timing / trace.stats.delta) < len(trace.data):
                 sumsq += np.sum((corrected_amplitude(trace, theor_timing) ** 2))
             else:
@@ -84,7 +80,7 @@ def depthvel_gridsearch_wf(streamdict):
                    for i in range(len(depth_array)) for j in range(len(vel_array))]
 
     with multiprocessing.Pool() as pool:
-        results = pool.map(worker_task, params_list)
+        results = pool.map(amplitude_summing_task, params_list)
     pool.close()
 
     for result in results:
@@ -94,6 +90,35 @@ def depthvel_gridsearch_wf(streamdict):
     print("Elapsed time:", time.time() - gridtime, "seconds")
 
     return depth_array, vel_array, sumsq_array
+
+
+# define a function that takes a trace and returns the L2 misfit to a 2-layer model
+def l2_misfit_task(trace, depth, mat1, mat2):
+    synthetic = wfm.retrieve_seismogram_2layer(np.arange(0, trace.stats.npts * trace.stats.delta, trace.stats.delta),
+                                               depth, mat1, mat2, trace.stats.distance, trace.stats.delta)
+    return np.linalg.norm(synthetic - trace.data)
+
+
+def synthetic_summing_task(params):
+    depth_index, mat1_index, mat2_index, depth, mat1, mat2, streamdict = params
+    sumsq = 0
+    for filename, stream in streamdict.items():
+        for trace in stream:
+            L2_misfit = l2_misfit_task(trace, depth, mat1, mat2)
+            sumsq += L2_misfit
+    return depth_index, mat1_index, mat2_index, sumsq
+
+
+def depthmat_gridsearch_wf(streamdict):
+    gridtime = time.time()
+    depth_array = np.arange(390, 420, 1)
+    mat1_rho_array = np.arange(916, 922, 1)
+    mat1_vp_array = np.arange(3500, 3800, 1)
+    mat1_vs_array = mat1_vp_array/2
+    mat2_rho_array = np.arange(2700, 3300, 50)
+    mat2_vp_array = np.arange(500, 6000, 50)
+    mat2_vs_array = mat2_vp_array/1.82
+
 
 
 def depthvel_gridsearch_wf_plot(streamdict, prior=[3630, 405]):

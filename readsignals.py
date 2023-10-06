@@ -54,11 +54,22 @@ def main():
 
     dt = lithic_streams["33.su"][0].stats.delta
     t_array = np.arange(0, 0.3, dt)
-    synthetic_source = wfm.ricker_wavelet(125, 0.025, dt)
-    synthetic = wfm.compute_seismogram_2layer(t_array, synthetic_source[1], 477, [1000, 3630, 3630/2], [2700, 5800, 5800/1.82], 50, lithic_streams["33.su"][0].stats.delta)
+    synthetic = wfm.retrieve_seismogram_2layer(t_array, 477, [1000, 3630, 3630 / 2],
+                                               [2700, 5800, 5800 / 1.82], 50,
+                                               dt=lithic_streams["33.su"][0].stats.delta)
     plt.plot(t_array, synthetic, color='black', linewidth=1)
     plt.show()
 
+    runtime_Start = time.time()
+    threelayer_depths = [406, 10]
+    threelayer_rho = [1000, 2120, 3300]
+    threelayer_vp = [3630, 1700, 6200]
+    threelayer_vs = [1815, 160, 6200/1.82]
+    threelayer = wfm.Model(threelayer_depths, threelayer_rho, threelayer_vp, threelayer_vs)
+    threelayer_synthetic = threelayer.get_synthetic(np.arange(0, 1, 0.00025), 50, dt=lithic_streams["33.su"][0].stats.delta)
+    print('Time taken: ' + str(time.time() - runtime_Start) + ' seconds')
+    plt.plot(np.arange(0, 1, 0.00025), threelayer_synthetic, color='black', linewidth=1)
+    plt.show()
 
     # runtime_Start = time.time()
     # wfgs.depthvel_gridsearch_wf_plot(aquifer_streams, prior=[3630, 405])
