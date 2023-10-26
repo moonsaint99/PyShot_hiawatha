@@ -11,93 +11,7 @@ import time
 pvel = 3800
 
 import pickfile as pf
-
-def attenuation(x, a, b):
-    return b*np.exp(-a*x)
-
-
-def attn_fit(args):
-    dist_array = np.array([])
-    min_array = np.array([])
-    for i in args:
-        dist_array = np.append(dist_array, i.dist)
-        min_array = np.append(min_array, i.min*np.sqrt(i.dist))
-    return sp.optimize.curve_fit(
-        f=attenuation,
-        xdata=dist_array,
-        ydata=min_array,
-        p0=np.array([3.9e-3, 2.1e2])
-    )
-
-
-def inv1(x, a, b, c, d, f):
-    return a*(1-np.exp(-b*x)) + c*(1-np.exp(-d*x)) + f*x
-
-
-rng = np.random.default_rng()
-def inv1_fit(args):
-    dist_array = np.array([])
-    tmin_array = np.array([])
-    for i in args:
-        dist_array = np.append(dist_array, i.dist)
-        tmin_array = np.append(tmin_array, i.tmin)
-    return sp.optimize.curve_fit(
-        f=inv1,
-        xdata=dist_array,
-        ydata=tmin_array,
-        # p0=np.array([0.85/100,0.035,1/1000,1.4, 1/3900]),
-        p0=([0.011,0.04, 0.35, 0.005, 1/3800]),
-        maxfev=10000000
-    )
-
-
-def refl_time(offset, angle, velocity, depth=405):
-    refl_timing = 2*np.sqrt(
-                            (depth ** 2) +
-                            ((offset/2)**2 * np.cos(np.deg2rad(angle))**2)
-    ) / velocity
-    return refl_timing
-
-
-def depthvel_fit(primary, secondary):
-    dist_array = np.array([])
-    tmax_array = np.array([])
-    for i in primary:
-        dist_array = np.append(dist_array, i.dist)
-    for i in secondary:
-        tmax_array = np.append(tmax_array, i.tmax)
-    return sp.optimize.curve_fit(
-        f=refl_time,
-        xdata=dist_array,
-        ydata=tmax_array,
-        p0=np.array([0, 3600, 405]),
-        bounds=([0,0,0], [1e-8, np.inf, np.inf]),
-        maxfev=10000
-    )
-
-
-def inv1_slope(x, params):  # This will accept a tuple of parameters
-    a, b, c, d, f = params
-    dtdx = a*b*np.exp(-b*x) + c*d*np.exp(-d*x) + f
-    return 1/dtdx
-
-
-def inv1_depth(dist, params):
-    vel_grad = inv1_slope(dist, params)
-    # vel_apparent = primary.dist_no_outliers/primary.tmin_no_outliers
-    vel_apparent = dist/inv1(dist, *params)
-    z = np.array([])
-    for i in range(len(dist)):
-        z_int = sp.integrate.quad(lambda x: 1/(np.arccosh(vel_grad[i]/vel_apparent[i])), 0, dist[i])
-        z_temp = 1/np.pi * z_int[0]
-        z = np.append(z, z_temp)
-    return z, vel_grad
-
-
-def inc_angle(primary, params):
-    vmin = inv1_slope(primary.dist+0.00001, params)
-    vmax = inv1_slope(0, params)
-    return np.arcsin(vmax/vmin)
+import pickanalysis as pa
 
 
 primary_72 = pf.Pickfile('pickdata_aquifer/72_wind_primary.info', 'decr', 195)
@@ -156,7 +70,7 @@ secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_second
 aquifer_secondary_list = [secondary_72, secondary_73, secondary_74, secondary_76, secondary_77, secondary_78, secondary_79, secondary_80, secondary_81, secondary_82]
 
 
-attn_opt, attn_cov = attn_fit([primary_stack_onspread]+[primary_stack_offspread])
+attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread]+[primary_stack_offspread])
 
 
 # Next we'll fit attenuation using picks from the shot_loc_data_primary array
@@ -172,12 +86,12 @@ def primary_amp(primary, attn_coeff, inc_angle):
     attn_corr = np.exp(-attn_coeff*primary.dist)
     return primary.min/attn_corr/geom_corr*100
 
-inversion_results = inv1_fit(aquifer_primary_list)
+inversion_results = pa.inv1_fit(aquifer_primary_list)
 # incidence_angle = inc_angle(primary_fullstack, inversion_results[0])
-incidence_angle = inc_angle(primary_stack_onspread, inversion_results[0])
-incidence_angle_long = inc_angle(primary_stack_offspread, inversion_results[0])
+incidence_angle = pa.inc_angle(primary_stack_onspread, inversion_results[0])
+incidence_angle_long = pa.inc_angle(primary_stack_offspread, inversion_results[0])
 
-depth, vel = inv1_depth(np.arange(0, 200, 0.1), inversion_results[0])
+depth, vel = pa.inv1_depth(np.arange(0, 200, 0.1), inversion_results[0])
 # Pickle depth and vel for later use
 np.save('tmp/depthvel_aquifer.npy', np.array([depth, vel]))
 plt.plot(vel, depth)
@@ -207,9 +121,9 @@ def reflectivity(primary, secondary, attn_coeff, polarity='max'):
     geom_corr = np.cos(primary.angle)/path_length
     attn_corr = np.exp(-attn_coeff*primary.dist)
     if polarity == 'max':
-        return secondary.max/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+        return secondary.max/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
     elif polarity == 'min':
-        return secondary.min/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+        return secondary.min/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
 ref_72 = reflectivity(primary_72, secondary_72, attn_opt[0])
@@ -246,7 +160,7 @@ plt.grid()
 plt.show()
 
 
-depth = inv1_depth(np.arange(1, 200, 1), inversion_results[0])
+depth = pa.inv1_depth(np.arange(1, 200, 1), inversion_results[0])
 
 #depthvel=depthvel_fit(aquifer_primary_list, aquifer_secondary_list)[0]
 
@@ -265,9 +179,9 @@ refl_timingarray_20deg = np.array([])
 refl_deep = np.array([])
 for i in range(1, 200, 1):
     # refl_timing = 2*np.sqrt(i**2 + 405**2)/3830
-    refl_timingarray_0deg = np.append(refl_timingarray_0deg, refl_time(i, 0, primary_known_slope, 405))
-    refl_timingarray_10deg = np.append(refl_timingarray_10deg, refl_time(i, -10, primary_known_slope, 405))
-    refl_timingarray_20deg = np.append(refl_timingarray_20deg, refl_time(i, -20, primary_known_slope, 405))
+    refl_timingarray_0deg = np.append(refl_timingarray_0deg, pa.refl_time(i, 0, primary_known_slope, 405))
+    refl_timingarray_10deg = np.append(refl_timingarray_10deg, pa.refl_time(i, -10, primary_known_slope, 405))
+    refl_timingarray_20deg = np.append(refl_timingarray_20deg, pa.refl_time(i, -20, primary_known_slope, 405))
     # inversion_results[0][2], inversion_results[0][3], inversion_results[0][4]))
 
 # Plot data vs theoretical reflection traveltime
