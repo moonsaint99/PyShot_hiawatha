@@ -21,12 +21,12 @@ def attn_fit(args):
     min_array = np.array([])
     for i in args:
         dist_array = np.append(dist_array, i.dist)
-        min_array = np.append(min_array, i.min)
+        min_array = np.append(min_array, i.min*np.sqrt(i.dist))
     return sp.optimize.curve_fit(
         f=attenuation,
         xdata=dist_array,
         ydata=min_array,
-        p0=np.array([0.02, 2.1e2])
+        p0=np.array([3.9e-3, 2.1e2])
     )
 
 
@@ -91,12 +91,13 @@ def inv1_depth(dist, params):
         z_int = sp.integrate.quad(lambda x: 1/(np.arccosh(vel_grad[i]/vel_apparent[i])), 0, dist[i])
         z_temp = 1/np.pi * z_int[0]
         z = np.append(z, z_temp)
-    return z
+    return z, vel_grad
 
 
 def inc_angle(primary, params):
-    ray_param = 1/inv1_slope(primary.dist, params)
-    return np.arcsin(ray_param*1000)
+    vmin = inv1_slope(primary.dist+0.00001, params)
+    vmax = inv1_slope(0, params)
+    return np.arcsin(vmax/vmin)
 
 
 primary_72 = pf.Pickfile('pickdata_aquifer/72_wind_primary.info', 'decr', 195)
@@ -117,8 +118,8 @@ primary_known_dist = np.concatenate((primary_72.dist, primary_73.dist, primary_7
 
 # Next we can run a linear regression on the known data
 primary_known_slope, primary_known_intercept = sp.stats.linregress(primary_known_tmin, primary_known_dist)[0:2]
-print('Slope: ' + str(primary_known_slope))
-print('Intercept: ' + str(primary_known_intercept))
+# print('Slope: ' + str(primary_known_slope))
+# print('Intercept: ' + str(primary_known_intercept))
 
 # Now we regenerate the pickfiles with time delay corrections for the direct arrivals
 primary_72 = pf.Pickfile('pickdata_aquifer/72_wind_primary.info', 'decr', 195)#, timecorrection=primary_known_intercept/primary_known_slope)
@@ -155,7 +156,9 @@ secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_second
 aquifer_secondary_list = [secondary_72, secondary_73, secondary_74, secondary_76, secondary_77, secondary_78, secondary_79, secondary_80, secondary_81, secondary_82]
 
 
-attn_opt, attn_cov = attn_fit([primary_stack_onspread])
+attn_opt, attn_cov = attn_fit([primary_stack_onspread]+[primary_stack_offspread])
+
+
 # Next we'll fit attenuation using picks from the shot_loc_data_primary array
 # attn_opt_new, attn_cov = attn_fit(shot_loc_data_primary)
 
@@ -173,6 +176,17 @@ inversion_results = inv1_fit(aquifer_primary_list)
 # incidence_angle = inc_angle(primary_fullstack, inversion_results[0])
 incidence_angle = inc_angle(primary_stack_onspread, inversion_results[0])
 incidence_angle_long = inc_angle(primary_stack_offspread, inversion_results[0])
+
+depth, vel = inv1_depth(np.arange(0, 200, 0.1), inversion_results[0])
+# Pickle depth and vel for later use
+np.save('tmp/depthvel_aquifer.npy', np.array([depth, vel]))
+plt.plot(vel, depth)
+plt.ylim([0, 40])
+plt.gca().invert_yaxis()
+plt.xlabel('Velocity (m/s)')
+plt.ylabel('Depth (m)')
+plt.title('Firn Velocity Profile')
+plt.show()
 
 amp_72 = primary_amp(primary_72, attn_opt[0], incidence_angle)
 amp_73 = primary_amp(primary_73, attn_opt[0], incidence_angle)
@@ -193,9 +207,9 @@ def reflectivity(primary, secondary, attn_coeff, polarity='max'):
     geom_corr = np.cos(primary.angle)/path_length
     attn_corr = np.exp(-attn_coeff*primary.dist)
     if polarity == 'max':
-        return secondary.max/primary_amp(primary, attn_coeff, 0.0527)/attn_corr/geom_corr
+        return secondary.max/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
     elif polarity == 'min':
-        return secondary.min/primary_amp(primary, attn_coeff, 0.0527)/attn_corr/geom_corr
+        return secondary.min/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
 ref_72 = reflectivity(primary_72, secondary_72, attn_opt[0])
@@ -224,7 +238,7 @@ ref_stack_offspread = reflectivity(primary_stack_offspread, secondary_stack_offs
 # plt.scatter(np.rad2deg(primary_82.angle), ref_82, zorder=1, s=20)
 plt.scatter(np.rad2deg(primary_stack_onspread.angle), ref_stack_onspread, zorder=0, s=20)
 plt.scatter(np.rad2deg(primary_stack_offspread.angle), ref_stack_offspread, zorder=0, s=20)
-plt.ylim([-0.5, 1])
+plt.ylim([-1, 1])
 plt.title('Reflectivity as fxn of angle')
 plt.ylabel('Reflectivity')
 plt.xlabel('Angle (deg)')

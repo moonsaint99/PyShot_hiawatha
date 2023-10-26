@@ -17,7 +17,8 @@ class Pickfile:
         self.polarity = self.max == self.abs
         # When curve-fitting an exponential to self.min, we need to remove
         # the largest three values because they are outliers
-        self.min_outliers = np.argpartition(self.min, -1*outliers)[-1*outliers:]
+        self.min_outliers = np.argpartition(-self.min, -1*outliers)[-1*outliers:]
+        self.min_outliers = -self.min_outliers
         # self.min_outliers = 0
         # The above attribute could be turned into a method
         # that accepts a number of outliers to discard.

@@ -19,8 +19,9 @@ def attn_fit(args):
     dist_array = np.array([])
     min_array = np.array([])
     for i in args:
-        dist_array = np.append(dist_array, i.dist)
-        min_array = np.append(min_array, i.min)
+        dist_array = np.append(dist_array, i.dist_no_outliers)
+        newmin = i.min_no_outliers/np.sqrt(i.dist_no_outliers)
+        min_array = np.append(min_array, newmin)
     return sp.optimize.curve_fit(
         f=attenuation,
         xdata=dist_array,
@@ -33,7 +34,7 @@ def inv1(x, a, b, c, d, f):
     return a*(1-np.exp(-b*x)) + c*(1-np.exp(-d*x)) + f*x
 
 
-def inv1_fit(args):
+def inv1_fit(args): # returns fit of data to exponential function inv1
     dist_array = np.array([])
     tmin_array = np.array([])
     for i in args:
@@ -50,6 +51,7 @@ def inv1_fit(args):
 
 
 def inv1_slope(x, params):  # This will accept a tuple of parameters
+    # returns slowness u=1/dtdx based on the derivative of the exponential distance-time function inv1
     a, b, c, d, f = params
     dtdx = a*b*np.exp(-b*x) + c*d*np.exp(-d*x) + f
     return 1/dtdx
@@ -64,12 +66,16 @@ def inv1_depth(dist, params):
         z_int = sp.integrate.quad(lambda x: 1/(np.arccosh(vel_grad[i]/vel_apparent[i])), 0, dist[i])
         z_temp = 1/np.pi * z_int[0]
         z = np.append(z, z_temp)
-    return z
+    return z, vel_grad
 
 
+# def inc_angle(primary, params):
+#     ray_param = 1/inv1_slope(primary.dist, params)
+#     return np.arcsin(ray_param*1000)
 def inc_angle(primary, params):
-    ray_param = 1/inv1_slope(primary.dist, params)
-    return np.arcsin(ray_param*1000)
+    vmin = inv1_slope(primary.dist, params)
+    vmax = inv1_slope(0, params)
+    return np.arcsin(vmax/vmin)
 
 primary_29 = pf.Pickfile('pickdata_lithic/29_primary.info', 'incr', 115, outliers=3)
 primary_30 = pf.Pickfile('pickdata_lithic/30_primary.info', 'incr', 115, outliers=3)
@@ -83,109 +89,36 @@ secondary_31 = pf.Pickfile('pickdata_lithic/31_secondary.info', 'incr', 'seconda
 secondary_33 = pf.Pickfile('pickdata_lithic/33_secondary.info', 'incr', 'secondary', outliers=5)
 secondary_34 = pf.Pickfile('pickdata_lithic/34_secondary.info', 'incr', 'secondary', outliers=5)
 
-primary_72 = pf.Pickfile('pickdata_aquifer/72_wind_primary.info', 'incr', 195)
-primary_73 = pf.Pickfile('pickdata_aquifer/73_wind_primary.info', 'incr', 195)
-primary_74 = pf.Pickfile('pickdata_aquifer/74_wind_primary.info', 'incr', 195)
-midsouth = 135
-primary_76 = pf.Pickfile('pickdata_aquifer/76_wind_primary.info', 'incr', midsouth)
-primary_77 = pf.Pickfile('pickdata_aquifer/77_wind_primary.info', 'incr', midsouth)
-midspread = 135
-primary_78 = pf.Pickfile('pickdata_aquifer/78_wind_primary.info', 'incr', midspread)
-primary_79 = pf.Pickfile('pickdata_aquifer/79_wind_primary.info', 'incr', midspread)
-primary_80 = pf.Pickfile('pickdata_aquifer/80_wind_primary.info', 'incr', 60, 3)
-primary_81 = pf.Pickfile('pickdata_aquifer/81_wind_primary.info', 'incr', 60, 3)
-primary_82 = pf.Pickfile('pickdata_aquifer/82_wind_primary.info', 'incr', 60, 3)
+# primary_72 = pf.Pickfile('pickdata_aquifer/72_wind_primary.info', 'incr', 195)
+# primary_73 = pf.Pickfile('pickdata_aquifer/73_wind_primary.info', 'incr', 195)
+# primary_74 = pf.Pickfile('pickdata_aquifer/74_wind_primary.info', 'incr', 195)
+# midsouth = 135
+# primary_76 = pf.Pickfile('pickdata_aquifer/76_wind_primary.info', 'incr', midsouth)
+# primary_77 = pf.Pickfile('pickdata_aquifer/77_wind_primary.info', 'incr', midsouth)
+# midspread = 135
+# primary_78 = pf.Pickfile('pickdata_aquifer/78_wind_primary.info', 'incr', midspread)
+# primary_79 = pf.Pickfile('pickdata_aquifer/79_wind_primary.info', 'incr', midspread)
+# primary_80 = pf.Pickfile('pickdata_aquifer/80_wind_primary.info', 'incr', 60, 3)
+# primary_81 = pf.Pickfile('pickdata_aquifer/81_wind_primary.info', 'incr', 60, 3)
+# primary_82 = pf.Pickfile('pickdata_aquifer/82_wind_primary.info', 'incr', 60, 3)
 
-aquifer_primary_list = [primary_72, primary_73, primary_74, primary_76, primary_77, primary_78, primary_79, primary_80, primary_81, primary_82]
+# aquifer_primary_list = [primary_72, primary_73, primary_74, primary_76, primary_77, primary_78, primary_79, primary_80, primary_81, primary_82]
 
 primary_lithic_fullstack = pf.Pickfile('pickdata_lithic/fullstack_stacked_primary.info', 'incr', 0, 3, maxrows=24)
 
-secondary_74 = pf.Pickfile('pickdata_aquifer/74_wind_secondary.info', 'incr', 195)
-secondary_73 = pf.Pickfile('pickdata_aquifer/73_wind_secondary.info', 'incr', 195)
-secondary_72 = pf.Pickfile('pickdata_aquifer/72_wind_secondary.info', 'incr', 195)
-secondary_76 = pf.Pickfile('pickdata_aquifer/76_wind_secondary.info', 'incr', midsouth)
-secondary_77 = pf.Pickfile('pickdata_aquifer/77_wind_secondary.info', 'incr', midsouth)
-secondary_78 = pf.Pickfile('pickdata_aquifer/78_wind_secondary.info', 'incr', midspread)
-secondary_79 = pf.Pickfile('pickdata_aquifer/79_wind_secondary.info', 'incr', midspread)
-secondary_80 = pf.Pickfile('pickdata_aquifer/80_wind_secondary.info', 'incr', 60, 3)
-secondary_81 = pf.Pickfile('pickdata_aquifer/81_wind_secondary.info', 'incr', 60, 3)
-secondary_82 = pf.Pickfile('pickdata_aquifer/82_wind_secondary.info', 'incr', 60, 3)
+# secondary_74 = pf.Pickfile('pickdata_aquifer/74_wind_secondary.info', 'incr', 195)
+# secondary_73 = pf.Pickfile('pickdata_aquifer/73_wind_secondary.info', 'incr', 195)
+# secondary_72 = pf.Pickfile('pickdata_aquifer/72_wind_secondary.info', 'incr', 195)
+# secondary_76 = pf.Pickfile('pickdata_aquifer/76_wind_secondary.info', 'incr', midsouth)
+# secondary_77 = pf.Pickfile('pickdata_aquifer/77_wind_secondary.info', 'incr', midsouth)
+# secondary_78 = pf.Pickfile('pickdata_aquifer/78_wind_secondary.info', 'incr', midspread)
+# secondary_79 = pf.Pickfile('pickdata_aquifer/79_wind_secondary.info', 'incr', midspread)
+# secondary_80 = pf.Pickfile('pickdata_aquifer/80_wind_secondary.info', 'incr', 60, 3)
+# secondary_81 = pf.Pickfile('pickdata_aquifer/81_wind_secondary.info', 'incr', 60, 3)
+# secondary_82 = pf.Pickfile('pickdata_aquifer/82_wind_secondary.info', 'incr', 60, 3)
 secondary_lithic_fullstack = pf.Pickfile('pickdata_lithic/fullstack_stacked_secondary.info', 'incr', 0, 3, maxrows=24)
 
-# badtr = 6
-# primary_29 = pf.Pickfile('pickdata/29_primary.info', 23)
-# primary_29.fliptrace(badtr)
-# secondary_29 = pf.Pickfile('pickdata/29_secondary.info', 23)
-# secondary_29.fliptrace(badtr)
-# primary_30 = pf.Pickfile('pickdata/30_primary.info', 23)
-# primary_30.fliptrace(badtr)
-# secondary_30 = pf.Pickfile('pickdata/30_secondary.info', 23)
-# secondary_30.fliptrace(badtr)
-# primary_31 = pf.Pickfile('pickdata/31_primary.info', 23)
-# primary_31.fliptrace(badtr)
-# secondary_31 = pf.Pickfile('pickdata/31_secondary.info', 23)
-# secondary_31.fliptrace(badtr)
-#
-# primary_32 = pf.Pickfile('pickdata/32_primary.info', 20)
-# primary_32.fliptrace(badtr)
-# secondary_32 = pf.Pickfile('pickdata/32_secondary.info', 20)
-# secondary_32.fliptrace(badtr)
-# primary_33 = pf.Pickfile('pickdata/33_primary.info', 20)
-# primary_33.fliptrace(badtr)
-# secondary_33 = pf.Pickfile('pickdata/33_secondary.info', 20)
-# secondary_33.fliptrace(badtr)
-# primary_34 = pf.Pickfile('pickdata/34_primary.info', 20)
-# primary_34.fliptrace(badtr)
-# primary_fullstack = pf.Pickfile('pickdata/fullstack_stacked_primary.info', 0)
-# secondary_fullstack = pf.Pickfile('pickdata/fullstack_stacked_secondary.info', 0)
-#
-# # We'll create an array that lists each shot number and the shot location corresponding to it
-# shot_loc = np.array([
-#     [29, 23],
-#     [30, 23],
-#     [31, 23],
-#     [32, 20],
-#     [33, 20],
-#     # [34, 20],
-#     [35, 17],
-#     [36, 17],
-#     [37, 14],
-#     [39, 14],
-#     # [42, 11], delayed
-#     [43, 7],
-#     [44, 7],
-#     [45, 4],
-#     # [46, 4], delayed
-#     [47, 4],
-#     [50, 0]
-# ])
-#
-# shot_loc = np.array([
-#     [72, 195],
-#     [73, 195],
-#     [74, 195],
-#     [76, midsouth],
-#     [77, midsouth],
-#     [78, midspread],
-#     [79, midspread],
-#     [80, 60],
-#     [81, 60],
-#     [82, 60]
-#   ])
 
-# # Next we'll load in the shot locations from their files based on our shot_loc
-# # The files are provided in the format #_primary.info and #_secondary.info
-# shot_loc_data_primary = np.array([])
-# for i in shot_loc:
-#     pick = pf.Pickfile('pickdata_aquifer/' + str(i[0]) + '_wind_primary.info', 'incr', i[1])
-#     # pick.fliptrace(badtr)
-#     shot_loc_data_primary = np.append(shot_loc_data_primary, pick)
-#
-# shot_loc_data_secondary = np.array([])
-# for i in shot_loc:
-#     pick = pf.Pickfile('pickdata_aquifer/' + str(i[0]) + '_wind_secondary.info', 'incr', i[1])
-#     # pick.fliptrace(badtr)
-#     shot_loc_data_secondary = np.append(shot_loc_data_secondary, pick)
 
 
 attn_opt, attn_cov = attn_fit([primary_lithic_fullstack])
@@ -204,7 +137,14 @@ def primary_amp(primary, attn_coeff, inc_angle):
 
 inversion_results = inv1_fit([primary_lithic_fullstack])
 # incidence_angle = inc_angle(primary_fullstack, inversion_results[0])
-incidence_angle = inc_angle(primary_72, inversion_results[0])
+incidence_angle = inc_angle(primary_lithic_fullstack, inversion_results[0])
+
+depth, vel = inv1_depth(np.arange(0, 200, 0.1), inversion_results[0])
+np.save('tmp/depthvel_lithic.npy', np.array([depth, vel]))
+plt.plot(vel, depth)
+plt.ylim([0, 40])
+plt.gca().invert_yaxis()
+plt.show()
 
 # amp_stack = primary_amp(primary_stack, attn_opt[0], incidence_angle)
 # amp_29 = primary_amp(primary_29, attn_opt[0], incidence_angle)
@@ -218,14 +158,15 @@ incidence_angle = inc_angle(primary_72, inversion_results[0])
 # plt.show()
 
 
+
 def reflectivity(primary, secondary, attn_coeff, polarity='max'):
-    path_length = 2*np.sqrt(primary.dist**2 + 450**2)
+    path_length = 2*np.sqrt(primary.dist**2 + 477**2)
     geom_corr = np.cos(primary.angle)/path_length
     attn_corr = np.exp(-attn_coeff*primary.dist)
     if polarity == 'max':
-        return secondary.max/primary_amp(primary, attn_coeff, 0.0527)/attn_corr/geom_corr
+        return secondary.max/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
     elif polarity == 'min':
-        return secondary.min/primary_amp(primary, attn_coeff, 0.0527)/attn_corr/geom_corr
+        return secondary.min/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
 ref_29 = reflectivity(primary_29, secondary_29, attn_opt[0], polarity='min')
@@ -262,15 +203,12 @@ plt.scatter(np.rad2deg(primary_31.angle), ref_31, zorder=1, s=20)
 plt.scatter(np.rad2deg(primary_lithic_fullstack.angle), ref_lithic_stack, zorder=1, s=20)
 # plt.scatter(np.rad2deg(primary_72.angle), ref_stack, zorder=1, s=20)
 # # plt.legend(['29', '30', '31'])
-plt.ylim([-0.5, 1])
+# plt.ylim([-0.5, 1])
 plt.title('Reflectivity as fxn of angle')
 plt.ylabel('Reflectivity')
 plt.xlabel('Angle (deg)')
 plt.grid()
 plt.show()
-
-
-depth = inv1_depth(np.arange(1, 200, 1), inversion_results[0])
 
 
 def refl_time(offset, angle, velocity, depth=405):
@@ -333,20 +271,15 @@ for i in range(1, 200, 1):
 
 
 # # Plot direct arrival time vs offset
-# plt.plot(primary_72.dist, primary_72.tmin)
-# plt.plot(primary_73.dist, primary_73.tmin)
-# plt.plot(primary_74.dist, primary_74.tmin)
-# plt.plot(primary_76.dist, primary_76.tmin)
-# plt.plot(primary_77.dist, primary_77.tmin)
-# plt.plot(primary_78.dist, primary_78.tmin)
-# plt.plot(primary_79.dist, primary_79.tmin)
-# plt.plot(primary_80.dist, primary_80.tmin)
-# plt.plot(primary_81.dist, primary_81.tmin)
-# plt.plot(primary_82.dist, primary_82.tmin)
-# plt.title('Direct arrival time vs offset')
-# plt.xlabel('Offset (m)')
-# plt.ylabel('Traveltime (s)')
-# plt.show()
+primary_known_slope, primary_known_intercept = sp.stats.linregress(primary_lithic_fullstack.tmin, primary_lithic_fullstack.dist)[0:2]
+
+plt.scatter(primary_lithic_fullstack.dist, primary_lithic_fullstack.tmin, s=50, marker="o", zorder=0, facecolors='none', edgecolors='k')
+# plt.plot(np.arange(0,0.06,0.001)*primary_known_slope+primary_known_intercept, np.arange(0,0.06,0.001), zorder=0, linewidth=0.5)
+plt.plot(np.arange(0, 125, 200), inv1(np.arange(0, 125, 200), *inversion_results[0]), zorder=0, linewidth=0.5)
+plt.title('Direct arrival time vs offset')
+plt.xlabel('Offset (m)')
+plt.ylabel('Traveltime (s)')
+plt.show()
 
 # Plot traveltime of lithic reflector vs offset
 plt.plot(primary_lithic_fullstack.dist_no_outliers, secondary_lithic_fullstack.tmin_no_outliers)

@@ -72,8 +72,8 @@ def amplitude_summing_task(params):
 
 def depthvel_gridsearch_wf(streamdict):
     gridtime = time.time()
-    depth_array = np.arange(380, 500, 1)
-    vel_array = np.arange(3300, 4200, 1)
+    depth_array = np.arange(460, 490, 0.25)
+    vel_array = np.arange(3400, 3800, 0.5)
     sumsq_array = np.zeros((len(depth_array), len(vel_array)))
 
     params_list = [(i, j, depth_array[i], vel_array[j], streamdict)
@@ -121,7 +121,7 @@ def depthmat_gridsearch_wf(streamdict):
 
 
 
-def depthvel_gridsearch_wf_plot(streamdict, prior=[3630, 405]):
+def depthvel_gridsearch_wf_plot(streamdict, prior=[3630, 477]):
     depth_array, vel_array, sumsq_array = depthvel_gridsearch_wf(streamdict)
 
     # plt.figure(figsize=(10, 10))

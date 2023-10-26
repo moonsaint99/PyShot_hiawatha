@@ -14,8 +14,8 @@ def refl_time(offset, angle, velocity, depth=405):
 
 def depthvel_gridsearch(primary, secondary):
     gridtime = time.time()
-    depth_array = np.arange(380, 500, 1)
-    vel_array = np.arange(3300, 4200, 1)
+    depth_array = np.arange(450, 500, 1)
+    vel_array = np.arange(3600, 3800, 1)
     sumsq_array = np.zeros((len(depth_array), len(vel_array)))
     for i in range(len(depth_array)):
         for j in range(len(vel_array)):
@@ -37,4 +37,7 @@ def depthvel_gridsearch_plot(primary, secondary, prior=[3630, 405]):
     plt.title('Sum of squares of differences between theoretical and actual traveltime curves')
     plt.xlabel('Velocity (m/s)')
     plt.ylabel('Depth (m)')
+    plt.grid()
+    plt.grid(which='minor', linestyle='--')
+    plt.minorticks_on()
     plt.show()

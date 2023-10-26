@@ -2,6 +2,7 @@ import numpy as np
 import os
 import scipy as sp
 import zoeppritz as zp
+import matplotlib.pyplot as plt
 
 # Material vector: [rho, vp, vs]
 # calculate the normal incidence reflectivity using density and velocity (aka impedance)
@@ -30,6 +31,25 @@ def ricker_wavelet(frequency, duration, dt):
     y = (1 - 2 * (np.pi**2) * (frequency**2) * (t**2)) * np.exp(-(np.pi**2) * (frequency**2) * (t**2))
     return t, y
 
+
+def min_phase_ricker_from_existing(frequency, duration, dt):
+    t, rick = ricker_wavelet(frequency, duration, dt)
+    points = len(t)
+    spectrum = sp.fftpack.fft(rick, n=points)
+    amplitude = np.abs(spectrum)
+
+    # Compute minimum phase
+    cepstrum = sp.fftpack.fftshift(np.fft.ifft(np.log(amplitude + 1e-10))).real
+    min_phase_spectrum = np.exp(sp.signal.hilbert(cepstrum).imag)
+
+    # Compute minimum-phase wavelet using inverse FFT
+    minphase_wavelet = sp.fftpack.ifft(spectrum * min_phase_spectrum).real
+
+    return t, minphase_wavelet
+
+
+plt.plot(np.arange(0, 0.025, 0.00025), min_phase_ricker_from_existing(125, 0.025, 0.00025)[1])
+plt.show()
 
 def snell(theta1, mat1, mat2):
     vp1 = mat1[1]
@@ -100,8 +120,9 @@ class Model:
                 np.arcsin(self.vp[i + 1] / self.vp[0] * np.sin(theta)))
         return output ** 2
 
-    def gen_synthetic(self, t, offset, source_freq=125, source_duration=0.025, dt=0.00025):
-        source_wavelet = ricker_wavelet(source_freq, source_duration, dt)[1]
+    def gen_synthetic(self, t, offset, source_freq=125, source_duration=0.0025, dt=0.00025):
+        #source_wavelet = min_phase_ricker_from_existing(source_freq, source_duration, dt)
+        reflection_wavelet = ricker_wavelet(source_freq, source_duration, dt)[1]
         # We estimate the takeoff angle using scipy minimize
         depth = 0
         theta_takeoff = [] # Takeoff angle for the ray that reflects off interface i
@@ -110,7 +131,6 @@ class Model:
             theta_takeoff.append(sp.optimize.minimize(self.angle_optimalness, x0=np.arctan((offset/2)/depth), args=(i,offset),
                                               method='Powell').x[0])#, bounds=[(0, np.deg2rad(30))]).x[0])  # Powell method
                                                                             # seems to be the fastest for this case
-        print(np.rad2deg(theta_takeoff))
 
         def theta(i,j):
             # i is the reflector index, j is the interface index
@@ -127,34 +147,47 @@ class Model:
             R.append(Rnew)
             T.append(Tnew)
 
+        # Calculate arrival timing
+        time_reflection = []
+        pathlength_reflection = []
+        for i in range(len(self.interface_depths)):  # i is the reflection index, i=0 for first reflection, i=1 for 2nd
+            pathlength_reflection.append(0)
+            time_reflection.append(0)
+            for j in range(i+1):  # j is an index to iterate through all layers above the reflection.
+                pathlength_reflection += (2 * self.interface_depths[j] / np.cos(theta(i,j)))
+                time_reflection[i] += pathlength_reflection / self.vp[j]
+
         # Calculate relative arrival amplitudes
         A = R
         for i in range(len(R)):
+            # A[i] *= np.cos(theta_takeoff[i])/pathlength_reflection[i] # Geometric spreading and arrival orientation corrections
+            # Dummy line for future attenuation correction
             for j in range(i):
                 A[i] *= T[j]**2
 
-        # Calculate arrival timing
-        time_reflection = []
-        for i in range(len(self.interface_depths)):  # i is the reflection index, i=0 for first reflection, i=1 for 2nd
-            time_reflection.append(0)
-            for j in range(i+1):  # j is an index to iterate through all layers above the reflection.
-                time_reflection[i] += (2 * self.interface_depths[j] / self.vp[j] / np.cos(
-                    theta(i,i)))
         # Calculate impulse response
         greens = np.zeros_like(t)
         for i in range(len(R)):
-            greens[int(time_reflection[i] / dt)] = A[i]
+            if int(time_reflection[i] / dt) < len(greens):
+                greens[int(time_reflection[i] / dt)] = A[i]
+            else:
+                pass
+
+        # Calculate direct arrival
+        direct_arrival = np.zeros_like(t)
+        direct_arrival[int(offset / self.vp[0] / dt)] = 1/np.sqrt(offset)
+
 
         # Convolve source with reflection
-        seismogram = np.convolve(source_wavelet, greens, mode='same')
-
+        seismogram = np.convolve(reflection_wavelet, greens, mode='same')# + np.convolve(reflection_wavelet, direct_arrival, mode='same')
+        # seismogram = np.convolve(source_wavelet, direct_arrival, mode='same')
         # for i in range(len(self.interface_depths) - 1):
         #     seismogram += retrieve_seismogram_2layer(t, self.interface_depths[i], [self.rho[i], self.vp[i], self.vs[i]],
         #                                              [self.rho[i+1], self.vp[i+1], self.vs[i+1]], offset,
         #                                              source_freq=source_freq, source_duration=source_duration, dt=dt)
         return seismogram
 
-    def get_synthetic(self, t, offset, source_freq=125, source_duration=0.025, dt=0.00025):
+    def get_synthetic(self, t, offset, source_freq=250, source_duration=0.0025, dt=0.00025):
         parameters = self.interface_depths, self.rho, self.vp, self.vs, t, offset, source_freq, source_duration, dt
         filename = "_".join(str(p) for p in parameters) + ".npy"
         filename = str(hash(filename))
@@ -162,6 +195,6 @@ class Model:
             seismogram = np.load('./model_cache/' + filename)
         else:
             seismogram = self.gen_synthetic(t, offset, source_freq, source_duration, dt)
-            np.save('./model_cache/' + filename, seismogram)
+            # np.save('./model_cache/' + filename, seismogram)
 
         return seismogram
