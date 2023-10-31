@@ -69,8 +69,10 @@ secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_second
 
 aquifer_secondary_list = [secondary_72, secondary_73, secondary_74, secondary_76, secondary_77, secondary_78, secondary_79, secondary_80, secondary_81, secondary_82]
 
-
-attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread]+[primary_stack_offspread])
+print(primary_stack_onspread)
+print(primary_stack_offspread)
+print([primary_stack_onspread]+[primary_stack_offspread])
+attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread])
 
 
 # Next we'll fit attenuation using picks from the shot_loc_data_primary array
@@ -102,22 +104,22 @@ plt.ylabel('Depth (m)')
 plt.title('Firn Velocity Profile')
 plt.show()
 
-amp_72 = primary_amp(primary_72, attn_opt[0], incidence_angle)
-amp_73 = primary_amp(primary_73, attn_opt[0], incidence_angle)
-amp_74 = primary_amp(primary_74, attn_opt[0], incidence_angle)
-amp_76 = primary_amp(primary_76, attn_opt[0], incidence_angle)
-amp_77 = primary_amp(primary_77, attn_opt[0], incidence_angle)
-amp_78 = primary_amp(primary_78, attn_opt[0], incidence_angle)
-amp_79 = primary_amp(primary_79, attn_opt[0], incidence_angle)
-amp_80 = primary_amp(primary_80, attn_opt[0], incidence_angle)
-amp_81 = primary_amp(primary_81, attn_opt[0], incidence_angle)
-amp_82 = primary_amp(primary_82, attn_opt[0], incidence_angle)
+# amp_72 = primary_amp(primary_72, attn_opt[0], incidence_angle)
+# amp_73 = primary_amp(primary_73, attn_opt[0], incidence_angle)
+# amp_74 = primary_amp(primary_74, attn_opt[0], incidence_angle)
+# amp_76 = primary_amp(primary_76, attn_opt[0], incidence_angle)
+# amp_77 = primary_amp(primary_77, attn_opt[0], incidence_angle)
+# amp_78 = primary_amp(primary_78, attn_opt[0], incidence_angle)
+# amp_79 = primary_amp(primary_79, attn_opt[0], incidence_angle)
+# amp_80 = primary_amp(primary_80, attn_opt[0], incidence_angle)
+# amp_81 = primary_amp(primary_81, attn_opt[0], incidence_angle)
+# amp_82 = primary_amp(primary_82, attn_opt[0], incidence_angle)
 amp_stack_onspread = primary_amp(primary_stack_onspread, attn_opt[0], incidence_angle)
 amp_stack_offspread = primary_amp(primary_stack_offspread, attn_opt[0], incidence_angle_long)
 
 
 def reflectivity(primary, secondary, attn_coeff, polarity='max'):
-    path_length = 2*np.sqrt(primary.dist**2 + 450**2)
+    path_length = 2*np.sqrt(primary.dist**2 + 406**2)
     geom_corr = np.cos(primary.angle)/path_length
     attn_corr = np.exp(-attn_coeff*primary.dist)
     if polarity == 'max':
@@ -126,16 +128,16 @@ def reflectivity(primary, secondary, attn_coeff, polarity='max'):
         return secondary.min/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
-ref_72 = reflectivity(primary_72, secondary_72, attn_opt[0])
-ref_73 = reflectivity(primary_73, secondary_73, attn_opt[0])
-ref_74 = reflectivity(primary_74, secondary_74, attn_opt[0])
-ref_76 = reflectivity(primary_76, secondary_76, attn_opt[0])
-ref_77 = reflectivity(primary_77, secondary_77, attn_opt[0])
-ref_78 = reflectivity(primary_78, secondary_78, attn_opt[0])
-ref_79 = reflectivity(primary_79, secondary_79, attn_opt[0])
-ref_80 = reflectivity(primary_80, secondary_80, attn_opt[0])
-ref_81 = reflectivity(primary_81, secondary_81, attn_opt[0])
-ref_82 = reflectivity(primary_82, secondary_82, attn_opt[0])
+# ref_72 = reflectivity(primary_72, secondary_72, attn_opt[0])
+# ref_73 = reflectivity(primary_73, secondary_73, attn_opt[0])
+# ref_74 = reflectivity(primary_74, secondary_74, attn_opt[0])
+# ref_76 = reflectivity(primary_76, secondary_76, attn_opt[0])
+# ref_77 = reflectivity(primary_77, secondary_77, attn_opt[0])
+# ref_78 = reflectivity(primary_78, secondary_78, attn_opt[0])
+# ref_79 = reflectivity(primary_79, secondary_79, attn_opt[0])
+# ref_80 = reflectivity(primary_80, secondary_80, attn_opt[0])
+# ref_81 = reflectivity(primary_81, secondary_81, attn_opt[0])
+# ref_82 = reflectivity(primary_82, secondary_82, attn_opt[0])
 ref_stack_onspread = reflectivity(primary_stack_onspread, secondary_stack_onspread, attn_opt[0])
 ref_stack_offspread = reflectivity(primary_stack_offspread, secondary_stack_offspread, attn_opt[0])
 

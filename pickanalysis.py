@@ -71,11 +71,51 @@ def primary_amp(primary, attn_coeff, inc_angle):
     return primary.min/attn_corr/geom_corr*100
 
 
-def reflectivity(primary, secondary, attn_coeff, polarity='max'):
-    path_length = 2*np.sqrt(primary.dist**2 + 477**2)
-    geom_corr = np.cos(primary.angle)/path_length
-    attn_corr = np.exp(-attn_coeff*primary.dist)
-    if polarity == 'max':
-        return secondary.max/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
-    elif polarity == 'min':
-        return secondary.min/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+# def reflectivity(primary, secondary, attn_coeff, polarity='max'):
+#     path_length = 2*np.sqrt(primary.dist**2 + 477**2)
+#     geom_corr = np.cos(primary.angle)/path_length
+#     attn_corr = np.exp(-attn_coeff*primary.dist)
+#     if polarity == 'max':
+#         return secondary.max/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+#     elif polarity == 'min':
+#         return secondary.min/primary_amp(primary, attn_coeff, inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+
+
+def pair_finder(primary):
+    # This function will take a pickfile of primary arrivals and return a list of
+    # every primary arrival that has a complementary double pathlength arrival
+    dist_tuple_list = []
+    index_tuple_list = []
+    for dist1 in primary.dist:
+        for dist2 in primary.dist:
+            if dist2 == dist1*2:
+                dist_tuple_list.append((dist1, dist2))
+                index_tuple_list.append((np.where(primary.dist == dist1)[0][0], np.where(primary.dist == dist2)[0][0]))
+    return index_tuple_list, dist_tuple_list
+
+
+def pair_source_amplitudes(primary):
+    # Find the source amplitude given a primary pickfile
+    # This function will take a pickfile of primary arrivals and return a list of
+    # estimates of source amplitude from every pair of direct arrivals
+    inversion_results = inv1_fit([primary])
+    incidence_angle = inc_angle(primary, inversion_results[0])
+
+    index_tuple_list, dist_tuple_list = pair_finder(primary)
+    source_amp_list = []
+    for i in index_tuple_list:
+        path_factor_0 = np.cos(incidence_angle[i[0]])/primary.dist[i[0]]
+        path_factor_1 = np.cos(incidence_angle[i[1]])/primary.dist[i[1]]
+        source_amp = primary.min[i[0]]**2/primary.min[i[1]] * path_factor_1/(path_factor_0**2)
+        source_amp_list.append(source_amp)
+    return source_amp_list
+
+
+def dir_lin_source_amplitudes(primary):
+    inversion_results = inv1_fit([primary])
+    incidence_angle = inc_angle(primary, inversion_results[0])
+    path_factor = np.cos(incidence_angle)/primary.dist
+    y = np.log(-primary.min/path_factor)
+    x = -primary.dist
+    attenuation, logamplitude, r_value, p_value, std_err = sp.stats.linregress(x, y)
+    return attenuation, logamplitude, r_value, p_value, std_err
