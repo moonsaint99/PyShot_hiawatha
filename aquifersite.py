@@ -11,7 +11,7 @@ import pickanalysis as pa
 
 pvel = 3800
 
-import pickfile as pf
+import su_pickfile as pf
 import pickanalysis as pa
 
 

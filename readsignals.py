@@ -14,6 +14,7 @@ import time
 import metropolis_hastings as mh
 import pickle
 import stepgain as sg
+import obsPicker as opick
 
 def main():
     # Load all .su files in the directory into a dictionary of ObsPy Stream objects.
@@ -53,60 +54,9 @@ def main():
             trace.data = np.require(trace.data, dtype=np.float32)
         # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
         stream.write("segy_write/" + filename, format="SU")
-        # op.io.segy.write("segy_write/")
-        ##########################################
-        # Plot each stream as a record section
-        mintrace = stream[
-            0].stats.su.trace_header.distance_from_center_of_the_source_point_to_the_center_of_the_receiver_group
-        maxtrace = stream[
-            -1].stats.su.trace_header.distance_from_center_of_the_source_point_to_the_center_of_the_receiver_group
-        streamfig = plt.figure(figsize=(4, 6))
-        stream.plot(type='section', fig=streamfig, time_down=True, fillcolors=('blue', 'red'), color='none', size=(600, 800), offset_min=-115, offset_max=115)
-        ax = plt.gca()
-        ax.set_title(filename)
-        ax.set_xlabel('Offset (km)')
-        ax.set_ylabel('Time (s)')
-        ax.set_ylim(0.5, 0)
+        opick.Pick(stream, filename, str(filename)+'.csv')
 
-        point, = ax.plot([], [], '_', markersize=20, color='green')
 
-        offsetlist = []
-        for trace in stream:
-            offsetlist.append(trace.stats.distance/1000)
-
-        # Precompute every peak in the stream
-        peaks = []
-        peaktimes = []
-        for trace in stream:
-            peakindices = sp.signal.find_peaks(np.abs(trace.data))[0]
-            peaks.append(peakindices)
-            peaktimes.append(trace.stats.delta * peakindices)
-
-        def on_move(event):
-            if not event.inaxes:
-                return
-
-            nearest_offset = min(offsetlist, key=lambda x: abs(x - event.xdata))
-            # This is the offset the cursor is closest to
-            # We'll find the index of the trace with this offset
-            # and use that to plot the nearest peak
-            nearest_index = offsetlist.index(nearest_offset)
-            nearest_trace = stream[nearest_index]
-
-            # Find the nearest peak to the cursor
-            nearest_peak_time = min(peaktimes[nearest_index], key=lambda x: abs(x - event.ydata))
-
-            print(nearest_index)
-            time = event.ydata
-            # We'll find the nearest peak to the cursor
-
-            point.set_data((nearest_offset, nearest_peak_time))
-            streamfig.canvas.draw_idle()
-
-        streamfig.canvas.mpl_connect('motion_notify_event', on_move)
-        # ax.set_xlim(mintrace, maxtrace)
-        plt.show()
-        ##########################################
 
     # # Stack all traces
     # lithic_alltraces = op.Stream()
