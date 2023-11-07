@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import pick_gridsearch as gs
 import time
+import pickanalysis as pa
 
 # This script will use picked amplitudes of the primary and secondary seismic
 # arrivals to calculate the ratio of the two amplitudes.
@@ -43,7 +44,7 @@ primary_80 = pf.Pickfile('pickdata_aquifer/80_wind_primary.info', 'decr', 60, 3)
 primary_81 = pf.Pickfile('pickdata_aquifer/81_wind_primary.info', 'decr', 60, 3)#, timecorrection=primary_known_intercept/primary_known_slope)
 primary_82 = pf.Pickfile('pickdata_aquifer/82_wind_primary.info', 'decr', 60, 3)#, timecorrection=primary_known_intercept/primary_known_slope)
 primary_stack_onspread = pf.Pickfile('pickdata_aquifer/stack_onspread_primary.info', 'incr', 0, 3)#, timecorrection=primary_known_intercept/primary_known_slope)
-primary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_primary.info', 'incr', 80, 0, maxrows=24)#, timecorrection=primary_known_intercept/primary_known_slope)
+primary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_primary.info', 'incr', 80, 0, maxrows=23)#, timecorrection=primary_known_intercept/primary_known_slope)
 
 # Now we can use the linear regression to estimate the location of the shots of unknown location
 # Right now we've put in 125 based on the results of our regression
@@ -65,13 +66,13 @@ secondary_80 = pf.Pickfile('pickdata_aquifer/80_wind_secondary.info', 'decr', 's
 secondary_81 = pf.Pickfile('pickdata_aquifer/81_wind_secondary.info', 'decr', 'secondary')#, 3, timecorrection=primary_known_intercept/primary_known_slope)
 secondary_82 = pf.Pickfile('pickdata_aquifer/82_wind_secondary.info', 'decr', 'secondary')#, 3, timecorrection=primary_known_intercept/primary_known_slope)
 secondary_stack_onspread = pf.Pickfile('pickdata_aquifer/stack_onspread_secondary.info', 'incr', 'secondary', 3)#, timecorrection=primary_known_intercept/primary_known_slope)
-secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_secondary.info', 'incr', 'secondary', 0, maxrows=24)#, timecorrection=primary_known_intercept/primary_known_slope)
+secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_secondary.info', 'incr', 'secondary', 0, maxrows=23)#, timecorrection=primary_known_intercept/primary_known_slope)
 
 aquifer_secondary_list = [secondary_72, secondary_73, secondary_74, secondary_76, secondary_77, secondary_78, secondary_79, secondary_80, secondary_81, secondary_82]
 
-print(primary_stack_onspread)
-print(primary_stack_offspread)
-print([primary_stack_onspread]+[primary_stack_offspread])
+# print(primary_stack_onspread)
+# print(primary_stack_offspread)
+# print([primary_stack_onspread]+[primary_stack_offspread])
 attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread])
 
 
@@ -118,43 +119,47 @@ amp_stack_onspread = primary_amp(primary_stack_onspread, attn_opt[0], incidence_
 amp_stack_offspread = primary_amp(primary_stack_offspread, attn_opt[0], incidence_angle_long)
 
 
-def reflectivity(primary, secondary, attn_coeff, polarity='max'):
-    path_length = 2*np.sqrt(primary.dist**2 + 406**2)
-    geom_corr = np.cos(primary.angle)/path_length
-    attn_corr = np.exp(-attn_coeff*primary.dist)
-    if polarity == 'max':
-        return secondary.max/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
-    elif polarity == 'min':
-        return secondary.min/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+# def reflectivity(primary, secondary, attn_coeff, polarity='max'):
+#     path_length = 2*np.sqrt(primary.dist**2 + 406**2)
+#     geom_corr = np.cos(primary.angle)/path_length
+#     attn_corr = np.exp(-attn_coeff*primary.dist)
+#     if polarity == 'max':
+#         return secondary.max/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
+#     elif polarity == 'min':
+#         return secondary.min/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
-# ref_72 = reflectivity(primary_72, secondary_72, attn_opt[0])
+ref_72 = pa.reflectivity(primary_72, secondary_72,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_73 = pa.reflectivity(primary_73, secondary_73,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_74 = pa.reflectivity(primary_74, secondary_74,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_76 = pa.reflectivity(primary_76, secondary_76,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_77 = pa.reflectivity(primary_77, secondary_77,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_78 = pa.reflectivity(primary_78, secondary_78,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_79 = pa.reflectivity(primary_79, secondary_79,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_80 = pa.reflectivity(primary_80, secondary_80,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_81 = pa.reflectivity(primary_81, secondary_81,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_82 = pa.reflectivity(primary_82, secondary_82,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
+ref_stack_onspread = pa.reflectivity(primary_stack_onspread, secondary_stack_onspread,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max')
+ref_stack_offspread = pa.reflectivity(primary_stack_offspread, secondary_stack_offspread,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max')
+
 # ref_73 = reflectivity(primary_73, secondary_73, attn_opt[0])
-# ref_74 = reflectivity(primary_74, secondary_74, attn_opt[0])
-# ref_76 = reflectivity(primary_76, secondary_76, attn_opt[0])
-# ref_77 = reflectivity(primary_77, secondary_77, attn_opt[0])
-# ref_78 = reflectivity(primary_78, secondary_78, attn_opt[0])
-# ref_79 = reflectivity(primary_79, secondary_79, attn_opt[0])
-# ref_80 = reflectivity(primary_80, secondary_80, attn_opt[0])
-# ref_81 = reflectivity(primary_81, secondary_81, attn_opt[0])
-# ref_82 = reflectivity(primary_82, secondary_82, attn_opt[0])
-ref_stack_onspread = reflectivity(primary_stack_onspread, secondary_stack_onspread, attn_opt[0])
-ref_stack_offspread = reflectivity(primary_stack_offspread, secondary_stack_offspread, attn_opt[0])
+# ref_stack_onspread = reflectivity(primary_stack_onspread, secondary_stack_onspread, attn_opt[0])
+# ref_stack_offspread = reflectivity(primary_stack_offspread, secondary_stack_offspread, attn_opt[0])
 
 
-# plt.scatter(np.rad2deg(primary_72.angle), ref_72, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_73.angle), ref_73, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_74.angle), ref_74, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_76.angle), ref_76, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_77.angle), ref_77, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_78.angle), ref_78, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_79.angle), ref_79, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_80.angle), ref_80, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_81.angle), ref_81, zorder=1, s=20)
-# plt.scatter(np.rad2deg(primary_82.angle), ref_82, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_72.angle), ref_72, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_73.angle), ref_73, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_74.angle), ref_74, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_76.angle), ref_76, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_77.angle), ref_77, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_78.angle), ref_78, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_79.angle), ref_79, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_80.angle), ref_80, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_81.angle), ref_81, zorder=1, s=20)
+plt.scatter(np.rad2deg(primary_82.angle), ref_82, zorder=1, s=20)
 plt.scatter(np.rad2deg(primary_stack_onspread.angle), ref_stack_onspread, zorder=0, s=20)
 plt.scatter(np.rad2deg(primary_stack_offspread.angle), ref_stack_offspread, zorder=0, s=20)
-plt.ylim([-1, 1])
+# plt.ylim([-1, 1])
 plt.title('Reflectivity as fxn of angle')
 plt.ylabel('Reflectivity')
 plt.xlabel('Angle (deg)')
@@ -223,22 +228,22 @@ plt.show()
 # plt.show()
 
 
-# Plot direct arrival time vs offset
-plt.scatter(primary_72.dist, primary_72.tmin, s=16, marker=".")
-plt.scatter(primary_74.dist, primary_74.tmin, s=16, marker=".")
-plt.scatter(primary_73.dist, primary_73.tmin, s=16, marker=".")
-plt.scatter(primary_76.dist, primary_76.tmin, s=16, marker=".")
-plt.scatter(primary_77.dist, primary_77.tmin, s=16, marker=".")
-plt.scatter(primary_78.dist, primary_78.tmin, s=16, marker=".")
-plt.scatter(primary_79.dist, primary_79.tmin, s=16, marker=".")
-plt.scatter(primary_80.dist, primary_80.tmin, s=16, marker=".")
-plt.scatter(primary_81.dist, primary_81.tmin, s=16, marker=".")
-plt.scatter(primary_82.dist, primary_82.tmin, s=16, marker=".")
-plt.scatter(primary_stack_onspread.dist, primary_stack_onspread.tmin, s=50, marker="o", zorder=0, facecolors='none', edgecolors='k')
-plt.scatter(primary_stack_offspread.dist, primary_stack_offspread.tmin, s=50, marker="o", zorder=0, facecolors='none', edgecolors='k')
-plt.plot(np.arange(0,0.06,0.001)*primary_known_slope+primary_known_intercept, np.arange(0,0.06,0.001), zorder=0, linewidth=0.5)
-plt.title('Direct arrival time vs offset')
-plt.xlabel('Offset (m)')
-plt.ylabel('Traveltime (s)')
-plt.grid()
-plt.show()
+# # Plot direct arrival time vs offset
+# plt.scatter(primary_72.dist, primary_72.tmin, s=16, marker=".")
+# plt.scatter(primary_74.dist, primary_74.tmin, s=16, marker=".")
+# plt.scatter(primary_73.dist, primary_73.tmin, s=16, marker=".")
+# plt.scatter(primary_76.dist, primary_76.tmin, s=16, marker=".")
+# plt.scatter(primary_77.dist, primary_77.tmin, s=16, marker=".")
+# plt.scatter(primary_78.dist, primary_78.tmin, s=16, marker=".")
+# plt.scatter(primary_79.dist, primary_79.tmin, s=16, marker=".")
+# plt.scatter(primary_80.dist, primary_80.tmin, s=16, marker=".")
+# plt.scatter(primary_81.dist, primary_81.tmin, s=16, marker=".")
+# plt.scatter(primary_82.dist, primary_82.tmin, s=16, marker=".")
+# plt.scatter(primary_stack_onspread.dist, primary_stack_onspread.tmin, s=50, marker="o", zorder=0, facecolors='none', edgecolors='k')
+# plt.scatter(primary_stack_offspread.dist, primary_stack_offspread.tmin, s=50, marker="o", zorder=0, facecolors='none', edgecolors='k')
+# plt.plot(np.arange(0,0.06,0.001)*primary_known_slope+primary_known_intercept, np.arange(0,0.06,0.001), zorder=0, linewidth=0.5)
+# plt.title('Direct arrival time vs offset')
+# plt.xlabel('Offset (m)')
+# plt.ylabel('Traveltime (s)')
+# plt.grid()
+# plt.show()

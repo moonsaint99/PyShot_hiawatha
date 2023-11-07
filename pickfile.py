@@ -2,9 +2,9 @@ import numpy as np
 import scipy as sp
 
 class Pickfile:
-    def __init__(self, filename, order, shotloc, outliers=0, maxrows=12, pvel=3800, pintercept=0, timecorrection=0, depth=477, spacing=5):
+    def __init__(self, filename, order, shotloc, outliers=0, maxrows=11, pvel=3800, pintercept=0, timecorrection=0, depth=477, spacing=5, trunc_zeros=True):
         self.filename = filename
-        self.data = np.loadtxt(filename, skiprows=1, usecols=(0,1,2,3,4,5,6,7,8,9,10,11,12), max_rows=maxrows)
+        self.data = np.loadtxt(filename, skiprows=2, usecols=(0,1,2,3,4,5,6,7,8,9,10,11,12), max_rows=maxrows)
         self.trace = self.data[:,0]
         self.max = self.data[:,6]
         self.tmax = self.data[:,7]
@@ -43,9 +43,23 @@ class Pickfile:
         elif order == 'incr':
             self.dist = abs(shotloc + (self.trace * spacing))
             self.dist_no_outliers = np.delete(self.dist, self.min_outliers)
-        self.angle = np.arctan(self.dist/depth)
-        self.angle_no_outliers = np.arctan(self.dist_no_outliers/depth)
+        elif order == 'determined':
+            self.dist = self.data[:,1]
+        self.angle = np.arctan(self.dist/2/depth)
+        self.angle_no_outliers = np.arctan(self.dist_no_outliers/2/depth)
         self.tmin_no_outliers = np.delete(self.tmin, self.min_outliers)
+        self.zeroindex = np.where(self.dist == 0)
+        if trunc_zeros==True:
+            self.dist = np.delete(self.dist, self.zeroindex)
+            self.tmin = np.delete(self.tmin, self.zeroindex)
+            self.tmax = np.delete(self.tmax, self.zeroindex)
+            self.min = np.delete(self.min, self.zeroindex)
+            self.max = np.delete(self.max, self.zeroindex)
+            self.abs = np.delete(self.abs, self.zeroindex)
+            self.tabs = np.delete(self.tabs, self.zeroindex)
+            self.energy = np.delete(self.energy, self.zeroindex)
+            self.trace = np.delete(self.trace, self.zeroindex)
+            self.angle = np.delete(self.angle, self.zeroindex)
 
     def fliptrace(self, tracenumber):
         newmax = self.min[tracenumber]

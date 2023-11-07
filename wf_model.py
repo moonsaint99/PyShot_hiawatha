@@ -48,8 +48,8 @@ def min_phase_ricker_from_existing(frequency, duration, dt):
     return t, minphase_wavelet
 
 
-plt.plot(np.arange(0, 0.025, 0.00025), min_phase_ricker_from_existing(125, 0.025, 0.00025)[1])
-plt.show()
+# plt.plot(np.arange(0, 0.025, 0.00025), min_phase_ricker_from_existing(125, 0.025, 0.00025)[1])
+# plt.show()
 
 def snell(theta1, mat1, mat2):
     vp1 = mat1[1]
