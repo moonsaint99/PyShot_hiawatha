@@ -173,9 +173,9 @@ def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='m
     geom_corr = np.cos(0)/path_length*imp_contr
     attn_corr = np.exp(attn_coeff*path_length)
     if polarity == 'max':
-        refl_amp = -secondary.max
+        refl_amp = secondary.max
     elif polarity == 'min':
-        refl_amp = -secondary.min
+        refl_amp = secondary.min
     refl = refl_amp / np.abs(source_amplitude) * attn_corr / geom_corr
     return refl
 

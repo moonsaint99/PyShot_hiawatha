@@ -19,7 +19,7 @@ import numpy as np
 import scipy as sp
 
 # Load all .su files in the directory of choice into a dictionary of ObsPy Stream objects.
-lithic_smallstack_streams = loadshots("lithic_smallstack_streams/abs/")
+lithic_smallstack_streams = loadshots("../lithic_smallstack_streams/abs/")
 
 # Helper functions
 def add_pick(pick, pickdict):
@@ -63,6 +63,9 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     ax.set_ylabel('Time (s)')
     ax.set_ylim(streamend, 0)
 
+    global data_delta
+    data_delta = stream[0].stats.delta
+
     global scale
     scale = 1
 
@@ -78,8 +81,16 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     global point
     point, = ax.plot([], [], '_', markersize=25, color='green')
 
+    global pickInfo
+    global pickInfo
+    pickInfo = ax.text(0.02, 0.02, '', transform=ax.transAxes,
+                       verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=1))
+
     global pickMode
     pickMode = False
+
+    global pickType
+    pickType = 1
 
     offsetlist = []
     for trace in stream_original:
@@ -103,23 +114,24 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         # This is the offset the cursor is closest to
         # We'll find the index of the trace with this offset
         # and use that to plot the nearest peak
-        nearest_index = offsetlist.index(nearest_offset)  # This is the index of the trace with the nearest offset
-        nearest_trace = stream_original[nearest_index]
+        nearest_index = offsetlist.index(nearest_offset)  # This is the index of the trace the cursor is hovering over
+        nearest_trace = stream_original[nearest_index] # This is the trace the cursor is hovering over
 
         # Find the nearest peak to the cursor
-        nearest_peak_time = min(peaktimes[nearest_index], key=lambda x: abs(x - event.ydata))
-        nearest_peak_index = peaktimes[nearest_index].index(nearest_peak_time)
-
-        # We'll find the nearest peak to the cursor
-
-        return (nearest_offset, nearest_peak_time, nearest_trace.data[nearest_peak_index])
-
+        nearest_peak_time = min(peaktimes[nearest_index], key=lambda y: abs(y - event.ydata))
+        global data_delta
+        nearest_peak_index = int(nearest_peak_time / data_delta)
+        # find the amplitude of the peak nearest to the cursor
+        nearest_peak_amplitude = nearest_trace.data[nearest_peak_index]
+        return (nearest_offset, nearest_peak_time, nearest_peak_amplitude)
     # Highlight nearest peak to the cursor
 
     def on_move(event):
+        global pickInfo
         if not event.inaxes:
             return
         point.set_data((cursor_peakfinder(event)[0], cursor_peakfinder(event)[1]))
+        pickInfo.set_text('Peak amplitude:' + str(cursor_peakfinder(event)[2]))
         streamfig.canvas.draw_idle()
 
 
@@ -143,6 +155,9 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
             point, = ax.plot([], [], '_', markersize=20, color='green')
         elif pickType == 2:
             point, = ax.plot([], [], '_', markersize=20, color='fuchsia')
+        global pickInfo
+        pickInfo = ax.text(0.02, 0.02, '', transform=ax.transAxes,
+                           verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=1))
         global pickdictPlot1
         pickdictPlot1 = ax.scatter(x=list(pickdict1.keys()), y=[pick[0] for pick in pickdict1.values()], marker='X', s=60,
                                    color='white', edgecolors='black')
@@ -223,6 +238,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
                 streamfig.canvas.mpl_disconnect(button)
                 streamfig.canvas.mpl_disconnect(motion)
                 point, = ax.plot([], [], '_', markersize=25, color='green')
+                pickInfo.set_text('')
                 replot()
                 print('Pick mode off')
         if event.key == '1':
@@ -236,14 +252,20 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
             print('Picking secondary arrivals')
         if event.key == 'v':
             # Save the picks to a csv file
-            output_1 = outfile + '_1'
+            output_1 = 'primary_' + outfile
+            output_2 = 'secondary_' + outfile
+            key_pairs = []
+            for key in pickdict1.keys():
+                for key2 in pickdict2.keys():
+                    if key == key2:
+                        key_pairs.append(key)
             with open(output_1, 'w') as f:
-                for key in pickdict1.keys():
+                for key in key_pairs:
                     f.write("%s,%s,%s\n" % (key*1000, pickdict1[key][0], pickdict1[key][1]))
             print('Picks saved to ' + output_1)
-            output_2 = outfile + '_2'
             with open(output_2, 'w') as f:
-                for key in pickdict2.keys():
+                for key in key_pairs:
                     f.write("%s,%s,%s\n" % (key*1000, pickdict2[key][0], pickdict2[key][1]))
             print('Picks saved to ' + output_2)
     streamfig.canvas.mpl_connect('key_press_event', on_keypress)
+    plt.show(block=True)

@@ -1,20 +1,11 @@
-import obspy as op
-from obspy.io.segy.core import _read_segy
 import numpy as np
-import scipy as sp
 import os
-from load_segy import loadshots
+from obsPicker.load_segy import loadshots
 import matplotlib as mpl
 mpl.use('macosx')
-import matplotlib.pyplot as plt
-import wf_gridsearch as wfgs
-import wf_model as wfm
 import multiprocessing
-import time
-import metropolis_hastings as mh
-import pickle
-import stepgain as sg
-import obsPicker as opick
+from obsPicker import obsPicker as opick
+
 
 def main():
     # Load all .su files in the directory into a dictionary of ObsPy Stream objects.
@@ -35,26 +26,34 @@ def main():
     #     stream.trim(starttime, starttime + 0.3)
     # # lithic_streams["33.su"].plot(type='section', time_down=True, fillcolors=('blue', 'red'), color='none', size=(800, 1600))
     #
-    # for filename, stream in aquifer_streams.items():
-    #     starttime = stream[0].stats.starttime
-    #     stream.trim(starttime, starttime + 0.3)
+    for filename, stream in aquifer_streams.items():
+        starttime = stream[0].stats.starttime
+        stream.trim(starttime, starttime + 0.3)
+        for trace in stream:
+            trace.detrend('linear')
+            trace.detrend('demean')
+            # trace.filter('bandpass', freqmin=10, freqmax=200, corners=4, zerophase=True)
+            trace.data = np.require(trace.data, dtype=np.float32)
+        # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
+        stream.write("segy_write/" + filename, format="SU")
+        opick.Pick(stream, filename, os.path.splitext(str(filename))[0]+'.csv')
     # # aquifer_streams["72_wind_nh.su"].plot(type='section', time_down=True, fillcolors=('blue', 'red'), color='none', size=(1000, 1600))
     #
     # for filename, stream in lithic_streamstack.items():
     #     starttime = stream[0].stats.starttime
     #     stream.trim(starttime, starttime + 0.3)
 
-    for filename, stream in lithic_smallstack_streams.items():
-        starttime = stream[0].stats.starttime
-        stream.trim(starttime, starttime + 0.3)
-        for trace in stream:
-            trace.detrend('linear')
-            trace.detrend('demean')
-            trace.filter('bandpass', freqmin=10, freqmax=150, corners=4, zerophase=True)
-            trace.data = np.require(trace.data, dtype=np.float32)
-        # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
-        stream.write("segy_write/" + filename, format="SU")
-        opick.Pick(stream, filename, str(filename)+'.csv')
+    # for filename, stream in lithic_smallstack_streams.items():
+    #     starttime = stream[0].stats.starttime
+    #     stream.trim(starttime, starttime + 0.3)
+    #     for trace in stream:
+    #         trace.detrend('linear')
+    #         trace.detrend('demean')
+    #         trace.filter('bandpass', freqmin=10, freqmax=200, corners=4, zerophase=True)
+    #         trace.data = np.require(trace.data, dtype=np.float32)
+    #     # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
+    #     stream.write("segy_write/" + filename, format="SU")
+    #     opick.Pick(stream, filename, os.path.splitext(str(filename))[0]+'.csv')
 
 
 
