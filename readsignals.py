@@ -1,10 +1,10 @@
 import numpy as np
 import os
-from obsPicker.load_segy import loadshots
+from load_segy import loadshots
 import matplotlib as mpl
 mpl.use('macosx')
 import multiprocessing
-from obsPicker import obsPicker as opick
+import obsPicker as opick
 
 
 def main():

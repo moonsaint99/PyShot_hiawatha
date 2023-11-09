@@ -19,11 +19,11 @@ import numpy as np
 import scipy as sp
 
 # Load all .su files in the directory of choice into a dictionary of ObsPy Stream objects.
-lithic_smallstack_streams = loadshots("../lithic_smallstack_streams/abs/")
+lithic_smallstack_streams = loadshots("lithic_smallstack_streams/abs/")
 
 # Helper functions
 def add_pick(pick, pickdict):
-    pickdict[pick[0]] = (pick[1], pick[2])
+    pickdict[pick[0]] = (pick[1], pick[2], pick[3])
     pickdict = dict(sorted(pickdict.items()))
     print(pickdict)
 
@@ -92,6 +92,9 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     global pickType
     pickType = 1
 
+    global stdWindow
+    stdWindow = 0.02
+
     offsetlist = []
     for trace in stream_original:
         offsetlist.append(trace.stats.distance / 1000)
@@ -123,7 +126,15 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         nearest_peak_index = int(nearest_peak_time / data_delta)
         # find the amplitude of the peak nearest to the cursor
         nearest_peak_amplitude = nearest_trace.data[nearest_peak_index]
-        return (nearest_offset, nearest_peak_time, nearest_peak_amplitude)
+
+        # Find the standard deviation window around the peak
+        global stdWindow
+        n_window = int(stdWindow/2/data_delta)
+        window_start = np.max([0, nearest_peak_index-n_window])
+        std_window = nearest_trace.data[window_start:nearest_peak_index+n_window]
+        std = np.std(std_window)
+
+        return (nearest_offset, nearest_peak_time, nearest_peak_amplitude, std)
     # Highlight nearest peak to the cursor
 
     def on_move(event):
@@ -131,7 +142,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         if not event.inaxes:
             return
         point.set_data((cursor_peakfinder(event)[0], cursor_peakfinder(event)[1]))
-        pickInfo.set_text('Peak amplitude:' + str(cursor_peakfinder(event)[2]))
+        pickInfo.set_text('Peak amplitude:' + str(cursor_peakfinder(event)[2]) + '\n' + 'Standard deviation:' + str(cursor_peakfinder(event)[3]))
         streamfig.canvas.draw_idle()
 
 
@@ -175,7 +186,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         if pickType == 1:
             # Remove pick if it already exists
             if (pick[0] in pickdict1.keys()):
-                if pickdict1[pick[0]] == (pick[1], pick[2]):
+                if pickdict1[pick[0]] == (pick[1], pick[2], pick[3]):
                     del pickdict1[pick[0]]
                 else:
                     add_pick(pick, pickdict1)
@@ -189,7 +200,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         elif pickType == 2:
             # Remove pick if it already exists
             if (pick[0] in pickdict2.keys()):
-                if pickdict2[pick[0]] == (pick[1], pick[2]):
+                if pickdict2[pick[0]] == (pick[1], pick[2], pick[3]):
                     del pickdict2[pick[0]]
                 else:
                     add_pick(pick, pickdict2)
@@ -261,11 +272,11 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
                         key_pairs.append(key)
             with open(output_1, 'w') as f:
                 for key in key_pairs:
-                    f.write("%s,%s,%s\n" % (key*1000, pickdict1[key][0], pickdict1[key][1]))
+                    f.write("%s,%s,%s,%s\n" % (key*1000, pickdict1[key][0], pickdict1[key][1], pickdict1[key][2]))
             print('Picks saved to ' + output_1)
             with open(output_2, 'w') as f:
                 for key in key_pairs:
-                    f.write("%s,%s,%s\n" % (key*1000, pickdict2[key][0], pickdict2[key][1]))
+                    f.write("%s,%s,%s,%s\n" % (key*1000, pickdict2[key][0], pickdict2[key][1], pickdict2[key][2]))
             print('Picks saved to ' + output_2)
     streamfig.canvas.mpl_connect('key_press_event', on_keypress)
     plt.show(block=True)

@@ -150,7 +150,8 @@ def simple_source_amplitude(primary, attn_coeff):
     return source_amplitude
 
 
-def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='max', inv_results=0):
+def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='max', inv_results=0, attn_hi = 4e-4, attn_lo = 2e-4):
+    # Source amplitude calibration
     dir_lin_amp_results = dir_lin_source_amplitudes(primary, inv_results)
     if attn_coeff == 0:
         attn_coeff = -dir_lin_amp_results[0]
@@ -168,16 +169,21 @@ def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='m
     elif source_amplitude == 'simple':
         source_type = 'simple'
         source_amplitude = (simple_source_amplitude(primary, attn_coeff))
+
+    # Geometric correction
     path_length = 2*np.sqrt((primary.dist/2)**2 + 477**2)
     imp_contr = 1
     geom_corr = np.cos(0)/path_length*imp_contr
+
+    # Attenuation correction
     attn_corr = np.exp(attn_coeff*path_length)
-    if polarity == 'max':
-        refl_amp = secondary.max
-    elif polarity == 'min':
-        refl_amp = secondary.min
-    refl = refl_amp / np.abs(source_amplitude) * attn_corr / geom_corr
-    return refl
+    attn_corr_hi = np.exp(attn_hi*path_length)
+    attn_corr_lo = np.exp(attn_lo*path_length)
+
+    refl = secondary.amplitude / np.abs(source_amplitude) * attn_corr / geom_corr
+    refl_upper = secondary.deviation(1).amplitude / np.abs(source_amplitude) * attn_corr_lo / geom_corr
+    refl_lower = secondary.deviation(-1).amplitude / np.abs(source_amplitude) * attn_corr_hi / geom_corr
+    return refl, refl_upper, refl_lower
 
 
 def refl_time(offset, angle, velocity, depth=405):
