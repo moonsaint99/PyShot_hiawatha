@@ -21,8 +21,8 @@ def loadshots(directory_path):
             for trace in stream:
                 # trace.stats.distance = abs(trace.stats.su.trace_header.distance_from_center_of_the_source_point_to_the_center_of_the_receiver_group)
                 trace.stats.distance = trace.stats.su.trace_header.distance_from_center_of_the_source_point_to_the_center_of_the_receiver_group
-                if trace.stats.distance == 0:
-                    stream.remove(trace)
+                # if trace.stats.distance == 0:
+                #     stream.remove(trace)
             # Store the Stream object in the dictionary.
             streamdict[filename] = stream
 

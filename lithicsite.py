@@ -169,8 +169,11 @@ for i in range(len(primary_lithic_smallstacks)):
     ref_shots_simple_smallstack.append(simple_reflectivity[0])
     ref_shots_simple_smallstack_upper_error.append(simple_reflectivity[1] - simple_reflectivity[0])
     ref_shots_simple_smallstack_lower_error.append(simple_reflectivity[0] - simple_reflectivity[2])
-    plt.plot(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_simple_smallstack[i][0], zorder=1, marker='o', markersize=5, linestyle='none')
-    plt.errorbar(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_simple_smallstack[i][0], yerr=[ref_shots_simple_smallstack_lower_error[i], ref_shots_simple_smallstack_upper_error[i]], zorder=0, fmt='none', ecolor='k', capsize=3)
+
+    angle = np.rad2deg(primary_lithic_smallstacks[i].angle)
+    refl = ref_shots_simple_smallstack[i]
+    plt.plot(angle,refl, zorder=1, marker='o', markersize=5, linestyle='none')
+    plt.errorbar(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_simple_smallstack[i], yerr=[ref_shots_simple_smallstack_lower_error[i], ref_shots_simple_smallstack_upper_error[i]], zorder=0, fmt='none', ecolor='k', capsize=3)
 
 # ref_stack_simple = pa.reflectivity(primary_lithic_fullstack, secondary_lithic_fullstack, 'simple', attn_coeff=2.7e-4, polarity='min')
 

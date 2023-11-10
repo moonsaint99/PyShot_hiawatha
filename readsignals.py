@@ -49,7 +49,7 @@ def main():
     #     for trace in stream:
     #         trace.detrend('linear')
     #         trace.detrend('demean')
-    #         trace.filter('bandpass', freqmin=10, freqmax=200, corners=4, zerophase=True)
+    #         # trace.filter('bandpass', freqmin=10, freqmax=300, corners=4, zerophase=True)
     #         trace.data = np.require(trace.data, dtype=np.float32)
     #     # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
     #     stream.write("segy_write/" + filename, format="SU")
