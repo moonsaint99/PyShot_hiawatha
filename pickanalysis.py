@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+import firn_analysis as fa
 
 def attenuation(x, a, b):
     return b*np.exp(-a*x)
@@ -18,52 +19,6 @@ def attn_fit(args):
         ydata=min_array,
         p0=np.array([0.02, 2.1e2])
     )
-
-
-def inv1(x, a, b, c, d, f):
-    return a*(1-np.exp(-b*x)) + c*(1-np.exp(-d*x)) + f*x
-
-
-def inv1_fit(args): # returns fit of data to exponential function inv1
-    # args is an iterable of pickfile objects
-    dist_array = np.array([])
-    tmin_array = np.array([])
-    for i in args:
-        dist_array = np.append(dist_array, i.dist)
-        tmin_array = np.append(tmin_array, i.tmin)
-    return sp.optimize.curve_fit(
-        f=inv1,
-        xdata=dist_array,
-        ydata=tmin_array,
-        # p0=np.array([0.85/100,0.035,1/1000,1.4, 1/3900]),
-        p0=([0.011,0.04, 0.35, 0.005, 1/3800]),
-        maxfev=10000000
-    )
-
-
-def inv1_slope(x, params):  # This will accept a tuple of parameters
-    # returns slowness u=1/dtdx based on the derivative of the exponential distance-time function inv1
-    a, b, c, d, f = params
-    dtdx = a*b*np.exp(-b*x) + c*d*np.exp(-d*x) + f
-    return 1/dtdx
-
-
-def inv1_depth(dist, params):
-    vel_grad = inv1_slope(dist, params)
-    # vel_apparent = primary.dist_no_outliers/primary.tmin_no_outliers
-    vel_apparent = dist/inv1(dist, *params)
-    z = np.array([])
-    for i in range(len(dist)):
-        z_int = sp.integrate.quad(lambda x: 1/(np.arccosh(vel_grad[i]/vel_apparent[i])), 0, dist[i])
-        z_temp = 1/np.pi * z_int[0]
-        z = np.append(z, z_temp)
-    return z, vel_grad
-
-
-def inc_angle(primary, params):
-    vmin = inv1_slope(primary.dist, params)
-    vmax = inv1_slope(0, params)
-    return np.arcsin(vmax/vmin)
 
 
 # def primary_amp(primary, attn_coeff, inc_angle):
@@ -99,8 +54,8 @@ def pair_source_amplitudes(primary):
     # Find the source amplitude given a primary pickfile
     # This function will take a pickfile of primary arrivals and return a list of
     # estimates of source amplitude from every pair of direct arrivals
-    inversion_results = inv1_fit([primary])
-    incidence_angle = inc_angle(primary, inversion_results[0])
+    inversion_results = fa.double_linear_exponential_fit([primary])
+    incidence_angle = fa.inc_angle(primary, inversion_results[0])
 
     index_tuple_list, dist_tuple_list = pair_finder(primary)
     if len(index_tuple_list) == 0:
@@ -117,16 +72,16 @@ def pair_source_amplitudes(primary):
 def dir_lin_fwd_model(primary, attn_coeff, source_amplitude):
     # This function will take a pickfile of primary arrivals and return a list of
     # estimates of source amplitude from every pair of direct arrivals
-    inversion_results = inv1_fit([primary])
-    incidence_angle = inc_angle(primary, inversion_results[0])
+    inversion_results = fa.double_linear_exponential_fit([primary])
+    incidence_angle = fa.inc_angle(primary, inversion_results[0])
     path_factor = np.cos(incidence_angle)/primary.dist
     return source_amplitude * path_factor * np.exp(-attn_coeff*primary.dist)
 
 
 def dir_lin_source_amplitudes(primary, inversion_results=0): # this should be restricting to greater amplitudes
     if inversion_results ==0:
-        inversion_results = inv1_fit([primary])
-    incidence_angle = inc_angle(primary, inversion_results[0])
+        inversion_results = fa.double_linear_exponential_fit([primary])
+    incidence_angle = fa.inc_angle(primary, inversion_results[0])
     path_factor = np.cos(incidence_angle)/primary.dist
     y = np.log(np.abs(primary.min/path_factor))
     x = primary.dist
@@ -142,15 +97,16 @@ def dir_lin_source_amplitudes(primary, inversion_results=0): # this should be re
     # return fit_results[0][0], fit_results[0][1]
 
 
-def simple_source_amplitude(primary, attn_coeff):
-    inversion_results = inv1_fit([primary])
-    incidence_angle = inc_angle(primary, inversion_results[0])
+def simple_source_amplitude(primary, attn_coeff, inv_results):
+    incidence_angle = fa.inc_angle(primary, inv_results[0])
+    print(np.rad2deg(incidence_angle))
     path_factor = np.cos(incidence_angle)/primary.dist
-    source_amplitude = np.abs(primary.min)/path_factor* np.exp(attn_coeff*primary.dist)
+    attn_coeff = -4e-2
+    source_amplitude = np.abs(primary.amplitude)/path_factor/np.exp(attn_coeff*primary.dist)
     return source_amplitude
 
 
-def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='max', inv_results=0, attn_hi = 4e-4, attn_lo = 2e-4):
+def reflectivity(primary, secondary, source_amplitude, inv_results, attn_coeff=0, polarity='max',  attn_hi = 4e-4, attn_lo = 2e-4):
     # Source amplitude calibration
     dir_lin_amp_results = dir_lin_source_amplitudes(primary, inv_results)
     if attn_coeff == 0:
@@ -168,7 +124,7 @@ def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='m
         source_amplitude = dir_lin_amp_results[1]
     elif source_amplitude == 'simple':
         source_type = 'simple'
-        source_amplitude = (simple_source_amplitude(primary, attn_coeff))
+        source_amplitude = (simple_source_amplitude(primary, attn_coeff, inv_results))
 
     # Geometric correction
     path_length = 2*np.sqrt((primary.dist/2)**2 + 477**2)
@@ -179,6 +135,11 @@ def reflectivity(primary, secondary, source_amplitude, attn_coeff=0, polarity='m
     attn_corr = np.exp(attn_coeff*path_length)
     attn_corr_hi = np.exp(attn_hi*path_length)
     attn_corr_lo = np.exp(attn_lo*path_length)
+
+    print('Source amplitude: ' + str(source_amplitude))
+    print('Reflection amplitude: ' + str(secondary.amplitude))
+    print('Geometric correction: ' + str(1/geom_corr))
+    print('Attenuation correction: ' + str(attn_corr))
 
     refl = secondary.amplitude / np.abs(source_amplitude) * attn_corr / geom_corr
     refl_upper = secondary.deviation(1).amplitude / np.abs(source_amplitude) * attn_corr_lo / geom_corr

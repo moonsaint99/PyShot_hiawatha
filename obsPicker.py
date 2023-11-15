@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import obspy as op
 import numpy as np
 import scipy as sp
+import os
 
 # Load all .su files in the directory of choice into a dictionary of ObsPy Stream objects.
 lithic_smallstack_streams = loadshots("lithic_smallstack_streams/abs/")
@@ -43,6 +44,13 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     global stream_original
     stream_original = stream_input.copy()
     stream = stream_original.copy()
+
+    global outfile_dir
+    global outfile_name
+    outfile_dir = os.path.dirname(outfile)
+    outfile_name = os.path.basename(outfile)
+
+
     # First we determine the initial axes of the plot based on the first trace in the Stream.
     # We will use this to determine the x and y limits of the plot.
     mintrace = stream[
@@ -224,6 +232,8 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
         global stream
         global stream_original
         global point
+        global outfile_dir
+        global outfile_name
         if event.key == 'n':
             scale *= 1.1
             replot()
@@ -236,6 +246,14 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
             replot()
         if event.key == 'k':
             clip /= 1.1
+            stream = clip_stream(stream_original, clip)
+            replot()
+        if event.key == 'u':
+            clip *= 2
+            stream = clip_stream(stream_original, clip)
+            replot()
+        if event.key == 'i':
+            clip /= 2
             stream = clip_stream(stream_original, clip)
             replot()
         if event.key == 'x':
@@ -263,8 +281,8 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
             print('Picking secondary arrivals')
         if event.key == 'v':
             # Save the picks to a csv file
-            output_1 = 'primary_' + outfile
-            output_2 = 'secondary_' + outfile
+            output_1 = outfile_dir + '/primary_' + outfile_name
+            output_2 = outfile_dir + '/secondary_' + outfile_name
             key_pairs = []
             for key in pickdict1.keys():
                 for key2 in pickdict2.keys():
@@ -278,5 +296,12 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
                 for key in key_pairs:
                     f.write("%s,%s,%s,%s\n" % (key*1000, pickdict2[key][0], pickdict2[key][1], pickdict2[key][2]))
             print('Picks saved to ' + output_2)
+        if event.key == 'g':
+            # Save the picks to a csv file
+            output_1 = outfile_dir + '/firn_' + outfile_name
+            with open(output_1, 'w') as f:
+                for key in pickdict1.keys():
+                    f.write("%s,%s,%s,%s\n" % (key*1000, pickdict1[key][0], pickdict1[key][1], pickdict1[key][2]))
+            print('Picks saved to ' + output_1)
     streamfig.canvas.mpl_connect('key_press_event', on_keypress)
     plt.show(block=True)

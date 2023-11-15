@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import copy
+import os
 
 class opPickfile:
     def __init__(self, filename, depth=477):
@@ -34,3 +35,29 @@ class opPickfile:
         deviated_pickfile = copy.deepcopy(self)
         deviated_pickfile.amplitude = self.amplitude + self.std*deviations
         return deviated_pickfile
+
+def assimilate_pickdata(directory_path):
+    names = []
+    primary_list = []
+    secondary_list = []
+    firn_list = []
+    for filename in os.listdir(directory_path):
+        if filename.endswith(".csv"):
+            if filename.startswith("primary"):
+                # Append the name of the file without the primary prefix and .csv suffix
+                names.append(filename[8:-4])
+    names.sort()
+    for name in names:
+        try:
+            primary_list.append(opPickfile(directory_path + '/primary_' + name + '.csv'))
+        except:
+            primary_list.append(None)
+        try:
+            secondary_list.append(opPickfile(directory_path + '/secondary_' + name + '.csv'))
+        except:
+            secondary_list.append(None)
+        try:
+            firn_list.append(opPickfile(directory_path + '/firn_' + name + '.csv'))
+        except:
+            firn_list.append(None)
+    return names, primary_list, secondary_list, firn_list

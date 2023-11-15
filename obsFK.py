@@ -36,7 +36,7 @@ def FK(stream, filename):
     # Get the number of traces in the stream
     nsamples_space = len(stream)
 
-    # Frequency axis
+    # Frequency axes, in cycles per second and cycles per meter
     faxis = np.fft.fftfreq(nsamples_time, d=dt)
     kaxis = np.fft.fftfreq(nsamples_space, d=dx)
 
@@ -45,7 +45,16 @@ def FK(stream, filename):
     kaxis = np.fft.fftshift(kaxis)
 
     # Compute the 2D FFT
-    data_fk = np.fft.fftshift(np.fft.fft2(data))
+    data_fk = np.fft.fftshift(np.fft.fft2(data, norm='ortho'))
+
+    # Plot FK transformed results
+    plt.figure()
+    plt.imshow(np.abs(data_fk), extent=[kaxis[0], kaxis[-1], 0, 1000], aspect='auto', cmap='RdYlGn')
+    plt.xlabel('k (1/m)')
+    plt.ylabel('f (Hz)')
+    plt.title('FK Spectrum for ' + filename)
+    plt.colorbar()
+    plt.show()
 
     # Return the FK spectrum and the frequency and wavenumber axes
     return data_fk, faxis, kaxis
@@ -69,41 +78,55 @@ def FK_plot(FK_output, fmin, fmax):
 
 
 # This function produces a velocity mask for an FK spectrum
-def FK_mask(FK_output, vmin, vmax):
+def FK_mask(FK_output, minvel):
     data_fk = FK_output[0]
     faxis = FK_output[1]
     kaxis = FK_output[2]
 
     # Create a mask for the FK spectrum
     freq, kx = np.meshgrid(faxis, kaxis)
-    velocity = freq/kx
-    mask = np.logical_and(velocity > vmin, velocity < vmax)
 
+    with np.errstate(divide='ignore', invalid='ignore'):
+        velocity = np.abs(freq / kx)
+        velocity[kx == 0] = np.inf
+    mask = np.ones_like(velocity)
+    mask[velocity < minvel] = 0
+    mask[velocity > 6000] = 0
+    # mask[np.abs(freq) > 1000] = 0
+    # mask[np.abs(kx) > 0.1] = 0
     # Apply the mask to the FK spectrum
-    data_fk_masked = np.where(mask, 1, data_fk)
+    data_fk_masked = data_fk*mask
+
+    plt.figure()
+    plt.imshow(np.abs(data_fk_masked), extent=[kaxis[0], kaxis[-1], 0, 500], aspect='auto', cmap='RdYlGn')
+    plt.xlabel('k (1/m)')
+    plt.ylabel('f (Hz)')
+    plt.title('FK Spectrum for ' + filename)
+    plt.colorbar()
+    plt.show()
 
     return data_fk_masked, faxis, kaxis
 
 
 # This function produces the IFFT of an FK spectrum, filters it, and puts the result into
 # a new obspy stream object
-def FK_IFFT(stream, filename, vmin, vmax):
+def FK_IFFT(stream, filename, minvel):
     FK_output = FK(stream, filename)
-    FK_masked = FK_mask(FK_output, vmin, vmax)
+    FK_masked = FK_mask(FK_output, minvel)
     data_fk_masked = FK_masked[0]
-    data_ifk = np.fft.ifft2(np.fft.ifftshift(data_fk_masked))
+    data_ifk = np.fft.ifft2(np.fft.ifftshift(data_fk_masked), norm='ortho')
     data_ifk = np.real(data_ifk)
-    data_ifk = np.transpose(data_ifk)
     data_ifk = np.require(data_ifk, dtype=np.float32)
     newstream = copy.deepcopy(stream)
     for i in range(len(newstream)):
         newstream[i].data = data_ifk[i]
     return newstream
 
-
-for filename, stream in streamdict.items():
-    FK_output = FK(stream, filename)
-    FK_plot(FK_output, 0, 500)
-    time.sleep(1)
-    FK_masked = FK_mask(FK_output, 0, 2000)
-    FK_plot(FK_masked, 0, 500)
+# #
+# for filename, stream in streamdict.items():
+#     FK_output = FK(stream, filename)
+#     FK_plot(FK_output, 0, 500)
+#     time.sleep(1)
+#     FK_masked = FK_mask(FK_output, 0, 2000)
+#     FK_plot(FK_masked, 0, 500)
+#     time.sleep(1)

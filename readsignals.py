@@ -5,6 +5,7 @@ import matplotlib as mpl
 mpl.use('macosx')
 import multiprocessing
 import obsPicker as opick
+import obsFK as ofk
 
 
 def main():
@@ -14,6 +15,9 @@ def main():
     aquifer_streamstack = loadshots("aquifer_shotstack/")
     lithic_streamstack = loadshots("lithic_shotstack/")
     lithic_smallstack_streams = loadshots("lithic_smallstack_streams/")
+    lithic_onspread = loadshots("lithic_onspread/")
+    lithic_good_bigstack = loadshots("lithic_good_bigstack/")
+    aquifer_good_bigstack = loadshots("aquifer_good_bigstack/")
 
     # To access a specific Stream by filename, you would do:
     # specific_stream = seismic_streams["72_wind.su"]
@@ -26,17 +30,17 @@ def main():
     #     stream.trim(starttime, starttime + 0.3)
     # # lithic_streams["33.su"].plot(type='section', time_down=True, fillcolors=('blue', 'red'), color='none', size=(800, 1600))
     #
-    for filename, stream in aquifer_streams.items():
-        starttime = stream[0].stats.starttime
-        stream.trim(starttime, starttime + 0.3)
-        for trace in stream:
-            trace.detrend('linear')
-            trace.detrend('demean')
-            # trace.filter('bandpass', freqmin=10, freqmax=200, corners=4, zerophase=True)
-            trace.data = np.require(trace.data, dtype=np.float32)
-        # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
-        stream.write("segy_write/" + filename, format="SU")
-        opick.Pick(stream, filename, os.path.splitext(str(filename))[0]+'.csv')
+    # for filename, stream in aquifer_streams.items():
+    #     starttime = stream[0].stats.starttime
+    #     stream.trim(starttime, starttime + 0.3)
+    #     for trace in stream:
+    #         trace.detrend('linear')
+    #         trace.detrend('demean')
+    #         trace.filter('bandpass', freqmin=10, freqmax=500, corners=4, zerophase=True)
+    #         trace.data = np.require(trace.data, dtype=np.float32)
+    #     # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
+    #     stream.write("segy_write/" + filename, format="SU")
+    #     opick.Pick(stream, filename, os.path.splitext('shotpicks_output/' + str(filename))[0]+'.csv')
     # # aquifer_streams["72_wind_nh.su"].plot(type='section', time_down=True, fillcolors=('blue', 'red'), color='none', size=(1000, 1600))
     #
     # for filename, stream in lithic_streamstack.items():
@@ -45,16 +49,43 @@ def main():
 
     # for filename, stream in lithic_smallstack_streams.items():
     #     starttime = stream[0].stats.starttime
-    #     stream.trim(starttime, starttime + 0.3)
+    #     stream.trim(starttime, starttime + 0.5)
     #     for trace in stream:
     #         trace.detrend('linear')
     #         trace.detrend('demean')
-    #         # trace.filter('bandpass', freqmin=10, freqmax=300, corners=4, zerophase=True)
+    #         trace.filter('bandpass', freqmin=10, freqmax=500, corners=4, zerophase=True)
     #         trace.data = np.require(trace.data, dtype=np.float32)
     #     # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
     #     stream.write("segy_write/" + filename, format="SU")
     #     opick.Pick(stream, filename, os.path.splitext(str(filename))[0]+'.csv')
+    #     stream_fk = ofk.FK_IFFT(stream, filename, vmin=-3000, vmax=3000)
+    #     opick.Pick(stream_fk, filename, os.path.splitext(str(filename))[0]+'_fk.csv')
 
+    # for filename, stream in lithic_onspread.items():
+    #     starttime = stream[0].stats.starttime
+    #     stream.trim(starttime, starttime + 0.5)
+    #     for trace in stream:
+    #         trace.detrend('linear')
+    #         trace.detrend('demean')
+    #         trace.filter('bandpass', freqmin=10, freqmax=450, corners=4, zerophase=True)
+    #         trace.data = np.require(trace.data, dtype=np.float32)
+    #     # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
+    #     # stream.write("segy_write/" + filename, format="SU")
+    #     opick.Pick(stream, filename, os.path.splitext('shotpicks_output/' + str(filename))[0] + '.csv')
+
+    for filename, stream in aquifer_good_bigstack.items():
+        starttime = stream[0].stats.starttime
+        stream.trim(starttime, starttime + 0.5)
+        for trace in stream:
+            trace.detrend('linear')
+            trace.detrend('demean')
+            # trace.filter('bandpass', freqmin=10, freqmax=500, corners=4, zerophase=True)
+            trace.data = np.require(trace.data, dtype=np.float32)
+        # stream.filter('bandpass', freqmin=50, freqmax=200, corners=4, zerophase=True)
+        # stream.write("segy_write/" + filename, format="SU")
+        # opick.Pick(stream, filename, os.path.splitext('shotpicks_output/' + str(filename))[0] + '.csv')
+        stream_fk = ofk.FK_IFFT(stream, filename, minvel=1800)
+        opick.Pick(stream_fk, filename, os.path.splitext('shotpicks_output/' + str(filename))[0] + '_fk.csv')
 
 
     # # Stack all traces

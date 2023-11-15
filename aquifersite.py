@@ -4,6 +4,7 @@ import scipy as sp
 import pick_gridsearch as gs
 import time
 import pickanalysis as pa
+import op_pickfile as opf
 
 # This script will use picked amplitudes of the primary and secondary seismic
 # arrivals to calculate the ratio of the two amplitudes.
@@ -70,10 +71,21 @@ secondary_stack_offspread = pf.Pickfile('pickdata_aquifer/stack_offspread_second
 
 aquifer_secondary_list = [secondary_72, secondary_73, secondary_74, secondary_76, secondary_77, secondary_78, secondary_79, secondary_80, secondary_81, secondary_82]
 
+aquifer_good_primary = opf.opPickfile('primary_shotpicks_output/aquifer_stack.csv')
+aquifer_good_secondary = opf.opPickfile('secondary_shotpicks_output/aquifer_stack.csv')
+aquifer_bigstack_primary = [aquifer_good_primary]
+aquifer_bigstack_secondary = [aquifer_good_secondary]
+
 # print(primary_stack_onspread)
 # print(primary_stack_offspread)
 # print([primary_stack_onspread]+[primary_stack_offspread])
 attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread])
+
+firn_dist = np.arange(0, 200, 0.1)
+a, b, c, d, f = attn_opt[0]
+firn_timing = pa.inv1(firn_dist, a, b, c, d, f)
+plt.plot(firn_dist, firn_timing)
+plt.show()
 
 
 # Next we'll fit attenuation using picks from the shot_loc_data_primary array
@@ -87,7 +99,7 @@ attn_opt, attn_cov = pa.attn_fit([primary_stack_onspread])
 def primary_amp(primary, attn_coeff, inc_angle):
     geom_corr = np.cos(inc_angle)/primary.dist
     attn_corr = np.exp(-attn_coeff*primary.dist)
-    return primary.min/attn_corr/geom_corr*100
+    return primary.min/attn_corr/geom_corr
 
 inversion_results = pa.inv1_fit(aquifer_primary_list)
 # incidence_angle = inc_angle(primary_fullstack, inversion_results[0])
@@ -129,36 +141,26 @@ amp_stack_offspread = primary_amp(primary_stack_offspread, attn_opt[0], incidenc
 #         return secondary.min/primary_amp(primary, attn_coeff, pa.inc_angle(primary, inversion_results[0]))/attn_corr/geom_corr
 
 
-ref_72 = pa.reflectivity(primary_72, secondary_72,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_73 = pa.reflectivity(primary_73, secondary_73,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_74 = pa.reflectivity(primary_74, secondary_74,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_76 = pa.reflectivity(primary_76, secondary_76,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_77 = pa.reflectivity(primary_77, secondary_77,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_78 = pa.reflectivity(primary_78, secondary_78,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_79 = pa.reflectivity(primary_79, secondary_79,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_80 = pa.reflectivity(primary_80, secondary_80,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_81 = pa.reflectivity(primary_81, secondary_81,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_82 = pa.reflectivity(primary_82, secondary_82,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max', inv_results=inversion_results)
-ref_stack_onspread = pa.reflectivity(primary_stack_onspread, secondary_stack_onspread,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max')
-ref_stack_offspread = pa.reflectivity(primary_stack_offspread, secondary_stack_offspread,source_amplitude='simple',attn_coeff=2.7e-4, polarity='max')
+ref_bigstack = pa.reflectivity(aquifer_good_primary, aquifer_good_secondary, 'simple', inversion_results, attn_coeff=2.7e-4, polarity='max')
 
 # ref_73 = reflectivity(primary_73, secondary_73, attn_opt[0])
 # ref_stack_onspread = reflectivity(primary_stack_onspread, secondary_stack_onspread, attn_opt[0])
 # ref_stack_offspread = reflectivity(primary_stack_offspread, secondary_stack_offspread, attn_opt[0])
 
 
-plt.scatter(np.rad2deg(primary_72.angle), ref_72, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_73.angle), ref_73, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_74.angle), ref_74, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_76.angle), ref_76, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_77.angle), ref_77, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_78.angle), ref_78, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_79.angle), ref_79, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_80.angle), ref_80, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_81.angle), ref_81, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_82.angle), ref_82, zorder=1, s=20)
-plt.scatter(np.rad2deg(primary_stack_onspread.angle), ref_stack_onspread, zorder=0, s=20)
-plt.scatter(np.rad2deg(primary_stack_offspread.angle), ref_stack_offspread, zorder=0, s=20)
+# plt.scatter(np.rad2deg(primary_72.angle), ref_72, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_73.angle), ref_73, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_74.angle), ref_74, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_76.angle), ref_76, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_77.angle), ref_77, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_78.angle), ref_78, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_79.angle), ref_79, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_80.angle), ref_80, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_81.angle), ref_81, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_82.angle), ref_82, zorder=1, s=20)
+# plt.scatter(np.rad2deg(primary_stack_onspread.angle), ref_stack_onspread, zorder=0, s=20)
+# plt.scatter(np.rad2deg(primary_stack_offspread.angle), ref_stack_offspread, zorder=0, s=20)
+plt.scatter(np.rad2deg(aquifer_good_primary.angle), ref_bigstack[0], zorder=0, s=20)
 # plt.ylim([-1, 1])
 plt.title('Reflectivity as fxn of angle')
 plt.ylabel('Reflectivity')

@@ -3,142 +3,30 @@ import matplotlib as mpl
 # mpl.use('macosx')
 import matplotlib.pyplot as plt
 import scipy as sp
+
+import op_pickfile
 import pick_gridsearch as gs
 import os
+
+import su_pickfile as supf
+import op_pickfile as pf
+import pickanalysis as pa
+import firn_analysis as fa
 
 # This script will use picked amplitudes of the primary and secondary seismic
 # arrivals to calculate the ratio of the two amplitudes.
 
 
-import su_pickfile as supf
-import op_pickfile as pf
-import pickanalysis as pa
+lithic_smallstack_names, primary_lithic_smallstacks, secondary_lithic_smallstacks, firn_lithic_smallstacks = op_pickfile.assimilate_pickdata('pickdata_lithic_smallstack')
+
+primary_lithicstack = pf.opPickfile('primary_shotpicks_output/stack_onspread_good.csv')
+secondary_lithicstack = pf.opPickfile('secondary_shotpicks_output/stack_onspread_good.csv')
+primary_lithic_bigstack = [primary_lithicstack]
+secondary_lithic_bigstack = [secondary_lithicstack]
 
 
-# p29 = supf.Pickfile('lithic_shotpicks/29_primary.info', 'incr', 115, outliers=3, maxrows=22)
-# p30 = supf.Pickfile('lithic_shotpicks/30_primary.info', 'incr', 115, outliers=3, maxrows=22)
-# p31 = supf.Pickfile('lithic_shotpicks/31_primary.info', 'incr', 115, outliers=3, maxrows=22)
-# p32 = supf.Pickfile('lithic_shotpicks/32_primary.info', 'incr', 100, outliers=3, maxrows=22)
-# p33 = supf.Pickfile('lithic_shotpicks/33_primary.info', 'incr', 100, outliers=5, maxrows=22)
-# p34 = supf.Pickfile('lithic_shotpicks/34_primary.info', 'incr', 100, outliers=5, maxrows=22)
-# p35 = supf.Pickfile('lithic_shotpicks/35_primary.info', 'incr', 85, outliers=5, maxrows=22)
-# p36 = supf.Pickfile('lithic_shotpicks/36_primary.info', 'incr', 85, outliers=5, maxrows=22)
-# p37 = supf.Pickfile('lithic_shotpicks/37_primary.info', 'incr', 70, outliers=5, maxrows=22)
-# p39 = supf.Pickfile('lithic_shotpicks/39_primary.info', 'incr', 70, outliers=5, maxrows=22)
-# p40 = supf.Pickfile('lithic_shotpicks/40_primary.info', 'incr', 70, outliers=5, maxrows=22)
-# p41 = supf.Pickfile('lithic_shotpicks/41_primary.info', 'incr', 55, outliers=5, maxrows=22)
-# p42 = supf.Pickfile('lithic_shotpicks/42_primary.info', 'incr', 55, outliers=5, maxrows=22)
-# p43 = supf.Pickfile('lithic_shotpicks/43_primary.info', 'incr', 40, outliers=5, maxrows=22)
-# p44 = supf.Pickfile('lithic_shotpicks/44_primary.info', 'incr', 40, outliers=5, maxrows=22)
-# p45 = supf.Pickfile('lithic_shotpicks/45_primary.info', 'incr', 25, outliers=5, maxrows=22)
-# p46 = supf.Pickfile('lithic_shotpicks/46_primary.info', 'incr', 25, outliers=5, maxrows=22)
-# p47 = supf.Pickfile('lithic_shotpicks/47_primary.info', 'incr', 25, outliers=5, maxrows=22)
-# p50 = supf.Pickfile('lithic_shotpicks/50_primary.info', 'incr', 0, outliers=5, maxrows=22)
-# p51 = supf.Pickfile('lithic_shotpicks/51_primary.info', 'incr', 0, outliers=5, maxrows=22)
-# p53 = supf.Pickfile('lithic_shotpicks/53_primary.info', 'incr', 0, outliers=5, maxrows=22)
-# primary_shots = [p29, p30, p31, p32, p33, p34, p35, p36, p37, p39, p40, p41, p42, p43, p44, p45, p46, p47, p50, p51, p53]
-
-# s29 = supf.Pickfile('lithic_shotpicks/29_secondary.info', 'incr', 'secondary', outliers=3, maxrows=22)
-# s30 = supf.Pickfile('lithic_shotpicks/30_secondary.info', 'incr', 'secondary', outliers=3, maxrows=22)
-# s31 = supf.Pickfile('lithic_shotpicks/31_secondary.info', 'incr', 'secondary', outliers=3, maxrows=22)
-# s32 = supf.Pickfile('lithic_shotpicks/32_secondary.info', 'incr', 'secondary', outliers=3, maxrows=22)
-# s33 = supf.Pickfile('lithic_shotpicks/33_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s34 = supf.Pickfile('lithic_shotpicks/34_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s35 = supf.Pickfile('lithic_shotpicks/35_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s36 = supf.Pickfile('lithic_shotpicks/36_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s37 = supf.Pickfile('lithic_shotpicks/37_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s39 = supf.Pickfile('lithic_shotpicks/39_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s40 = supf.Pickfile('lithic_shotpicks/40_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s41 = supf.Pickfile('lithic_shotpicks/41_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s42 = supf.Pickfile('lithic_shotpicks/42_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s43 = supf.Pickfile('lithic_shotpicks/43_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s44 = supf.Pickfile('lithic_shotpicks/44_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s45 = supf.Pickfile('lithic_shotpicks/45_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s46 = supf.Pickfile('lithic_shotpicks/46_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s47 = supf.Pickfile('lithic_shotpicks/47_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s50 = supf.Pickfile('lithic_shotpicks/50_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s51 = supf.Pickfile('lithic_shotpicks/51_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# s53 = supf.Pickfile('lithic_shotpicks/53_secondary.info', 'incr', 'secondary', outliers=5, maxrows=22)
-# secondary_shots = [s29, s30, s31, s32, s33, s34, s35, s36, s37, s39, s40, s41, s42, s43, s44, s45, s46, s47, s50, s51, s53]
-
-# primary_lithic_fullstack = supf.Pickfile('pickdata_lithic/fullstack_stacked_primary.info', 'incr', 0, 3, maxrows=22)
-# secondary_lithic_fullstack = supf.Pickfile('pickdata_lithic/fullstack_stacked_secondary.info', 'incr', 0, 3, maxrows=22)
-#
-# p29_30_31 = supf.Pickfile('OLD_SU_lithic_smallstacks/29_30_31_primary.info', 'decr', 115, outliers=3, maxrows=22)
-# p32_33_34 = supf.Pickfile('OLD_SU_lithic_smallstacks/32_33_34_primary.info', 'decr', 100, outliers=3, maxrows=22)
-# p35_36 = supf.Pickfile('OLD_SU_lithic_smallstacks/35_36_primary.info', 'decr', 85, outliers=3, maxrows=22)
-# p37_39_40 = supf.Pickfile('OLD_SU_lithic_smallstacks/37_39_40_primary.info', 'decr', 70, outliers=3, maxrows=22)
-# p41_42 = supf.Pickfile('OLD_SU_lithic_smallstacks/41_42_primary.info', 'decr', 55, outliers=3, maxrows=22)
-# p43_44 = supf.Pickfile('OLD_SU_lithic_smallstacks/43_44_primary.info', 'decr', 40, outliers=3, maxrows=22)
-# p45_46_47 = supf.Pickfile('OLD_SU_lithic_smallstacks/45_46_47_primary.info', 'decr', 25, outliers=3, maxrows=22)
-# p50_51_53 = supf.Pickfile('OLD_SU_lithic_smallstacks/50_51_53_primary.info', 'decr', 0, outliers=3, maxrows=22)
-# primary_lithic_smallstacks = [p29_30_31, p32_33_34, p35_36, p37_39_40, p41_42, p43_44, p45_46_47, p50_51_53]
-#
-# s29_30_31 = supf.Pickfile('OLD_SU_lithic_smallstacks/29_30_31_secondary.info', 'decr', 115, outliers=3, maxrows=22)
-# s32_33_34 = supf.Pickfile('OLD_SU_lithic_smallstacks/32_33_34_secondary.info', 'decr', 100, outliers=3, maxrows=22)
-# s35_36 = supf.Pickfile('OLD_SU_lithic_smallstacks/35_36_secondary.info', 'decr', 85, outliers=3, maxrows=22)
-# s37_39_40 = supf.Pickfile('OLD_SU_lithic_smallstacks/37_39_40_secondary.info', 'decr', 70, outliers=3, maxrows=22)
-# s41_42 = supf.Pickfile('OLD_SU_lithic_smallstacks/41_42_secondary.info', 'decr', 55, outliers=3, maxrows=22)
-# s43_44 = supf.Pickfile('OLD_SU_lithic_smallstacks/43_44_secondary.info', 'decr', 40, outliers=3, maxrows=22)
-# s45_46_47 = supf.Pickfile('OLD_SU_lithic_smallstacks/45_46_47_secondary.info', 'decr', 25, outliers=3, maxrows=22)
-# s50_51_53 = supf.Pickfile('OLD_SU_lithic_smallstacks/50_51_53_secondary.info', 'decr', 0, outliers=3, maxrows=22)
-# secondary_lithic_smallstacks = [s29_30_31, s32_33_34, s35_36, s37_39_40, s41_42, s43_44, s45_46_47, s50_51_53]
-
-# attn_opt, attn_cov = pa.attn_fit([primary_lithic_fullstack])
-# # Next we'll fit attenuation using picks from the shot_loc_data_primary array
-# # attn_opt_new, attn_cov = attn_fit(shot_loc_data_primary)
-#
-#
-# inversion_results = pa.inv1_fit([primary_lithic_fullstack])
-# incidence_angle = pa.inc_angle(primary_lithic_fullstack, inversion_results[0])
-
-# depth, vel = pa.inv1_depth(np.arange(0, 200, 0.1), inversion_results[0])
-# np.save('tmp/depthvel_lithic.npy', np.array([depth, vel]))
-# plt.plot(vel, depth)
-# plt.ylim([0, 40])
-# plt.gca().invert_yaxis()
-# plt.show()
-
-# Load pickfiles
-p29_30_31 = pf.opPickfile('pickdata_lithic_smallstack/primary_29_30_31.csv')
-p32_33_34 = pf.opPickfile('pickdata_lithic_smallstack/primary_32_33_34.csv')
-p35_36 = pf.opPickfile('pickdata_lithic_smallstack/primary_35_36.csv')
-p37_39_40 = pf.opPickfile('pickdata_lithic_smallstack/primary_37_39_40.csv')
-p41_42 = pf.opPickfile('pickdata_lithic_smallstack/primary_41_42.csv')
-# p43_44 = pf.opPickfile('pickdata_lithic_smallstack/primary_43_44.csv')
-p45_46_47 = pf.opPickfile('pickdata_lithic_smallstack/primary_45_46_47.csv')
-p50_51_53 = pf.opPickfile('pickdata_lithic_smallstack/primary_50_51_53.csv')
-primary_lithic_smallstacks = [p29_30_31, p32_33_34, p35_36, p37_39_40, p41_42, p45_46_47, p50_51_53]
-
-s29_30_31 = pf.opPickfile('pickdata_lithic_smallstack/secondary_29_30_31.csv')
-s32_33_34 = pf.opPickfile('pickdata_lithic_smallstack/secondary_32_33_34.csv')
-s35_36 = pf.opPickfile('pickdata_lithic_smallstack/secondary_35_36.csv')
-s37_39_40 = pf.opPickfile('pickdata_lithic_smallstack/secondary_37_39_40.csv')
-s41_42 = pf.opPickfile('pickdata_lithic_smallstack/secondary_41_42.csv')
-# s43_44 = pf.opPickfile('pickdata_lithic_smallstack/secondary_43_44.csv')
-s45_46_47 = pf.opPickfile('pickdata_lithic_smallstack/secondary_45_46_47.csv')
-s50_51_53 = pf.opPickfile('pickdata_lithic_smallstack/secondary_50_51_53.csv')
-secondary_lithic_smallstacks = [s29_30_31, s32_33_34, s35_36, s37_39_40, s41_42, s45_46_47, s50_51_53]
-
-
-def source_amp(primary, attn_coeff, inc_angle):
-    geom_corr = np.cos(inc_angle)/(primary.dist)
-    attn_corr = np.exp(-attn_coeff*primary.dist)
-    return primary.min/attn_corr/geom_corr
-
-
-# pair_amplitude = pa.pair_source_amplitudes(primary_lithic_fullstack)
-# pair_amplitude = pair_amplitude[1:]
-# plt.scatter(pair_amplitude,np.zeros(len(pair_amplitude)))
-# pair_mean = np.mean(pair_amplitude)
-# pair_std = np.std(pair_amplitude)
-#
-# dir_lin_amp_results = pa.dir_lin_source_amplitudes(primary_lithic_fullstack)
-# dir_lin_amp = np.exp(dir_lin_amp_results[1])
-# dir_lin_attn = -dir_lin_amp_results[0]
-# plt.scatter(dir_lin_amp,0)
-# plt.show()
-
+# Perform a firn velocity inversion
+inversion_results = fa.double_linear_exponential_fit(primary_lithic_smallstacks)
 
 # ref_lithic_stack_pair = pa.reflectivity(primary_lithic_fullstack, secondary_lithic_fullstack, 'pair', refl_polarity='min')
 # ref_lithic_stack_dir_lin = pa.reflectivity(primary_lithic_fullstack, secondary_lithic_fullstack, 'dir_lin', refl_polarity='min')
@@ -159,21 +47,37 @@ ref_shots_simple_smallstack = []
 ref_shots_simple_smallstack_upper_error = []
 ref_shots_simple_smallstack_lower_error = []
 for i in range(len(primary_lithic_smallstacks)):
-    # pair = pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'pair', attn_coeff=0.27e-3, polarity='min')
-    # if pair != 'No pairs found':
-    #     ref_shots_pair_smallstack.append(pair)
-    #     plt.plot(np.rad2deg(primary_lithic_smallstacks[i].angle), pair, zorder=1, marker='o', markersize=5, linestyle='none')
-    # ref_shots_dir_lin_smallstack.append(pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'dir_lin', attn_coeff=0.27e-3, polarity='min'))
-    # plt.plot(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_dir_lin_smallstack[i], zorder=1, marker='o', markersize=5, linestyle='none')
-    simple_reflectivity = pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'simple', attn_coeff=2.7e-4, polarity='min')
+#     # pair = pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'pair', attn_coeff=0.27e-3, polarity='min')
+#     # if pair != 'No pairs found':
+#     #     ref_shots_pair_smallstack.append(pair)
+#     #     plt.plot(np.rad2deg(primary_lithic_smallstacks[i].angle), pair, zorder=1, marker='o', markersize=5, linestyle='none')
+#     # ref_shots_dir_lin_smallstack.append(pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'dir_lin', attn_coeff=0.27e-3, polarity='min'))
+#     # plt.plot(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_dir_lin_smallstack[i], zorder=1, marker='o', markersize=5, linestyle='none')
+    simple_reflectivity = pa.reflectivity(primary_lithic_smallstacks[i], secondary_lithic_smallstacks[i], 'simple', inversion_results, attn_coeff=2.7e-4, polarity='min')
     ref_shots_simple_smallstack.append(simple_reflectivity[0])
     ref_shots_simple_smallstack_upper_error.append(simple_reflectivity[1] - simple_reflectivity[0])
     ref_shots_simple_smallstack_lower_error.append(simple_reflectivity[0] - simple_reflectivity[2])
+#
+#     angle = np.rad2deg(primary_lithic_smallstacks[i].angle)
+#     refl = ref_shots_simple_smallstack[i]
+#     plt.plot(angle,refl, zorder=1, marker='o', markersize=5, linestyle='none')
+#     plt.errorbar(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_simple_smallstack[i], yerr=[ref_shots_simple_smallstack_lower_error[i], ref_shots_simple_smallstack_upper_error[i]], zorder=0, fmt='none', ecolor='k', capsize=3)
 
-    angle = np.rad2deg(primary_lithic_smallstacks[i].angle)
-    refl = ref_shots_simple_smallstack[i]
+ref_shots_simple_bigstack = []
+ref_shots_simple_bigstack_upper_error = []
+ref_shots_simple_bigstack_lower_error = []
+for i in range(len(primary_lithic_bigstack)):
+    simple_reflectivity = pa.reflectivity(primary_lithic_bigstack[i], secondary_lithic_bigstack[i], 'simple', inversion_results, attn_coeff=2.7e-4, polarity='min')
+    ref_shots_simple_bigstack.append(simple_reflectivity[0])
+    ref_shots_simple_bigstack_upper_error.append(simple_reflectivity[1] - simple_reflectivity[0])
+    ref_shots_simple_bigstack_lower_error.append(simple_reflectivity[0] - simple_reflectivity[2])
+
+    angle = np.rad2deg(primary_lithic_bigstack[i].angle)
+    refl = ref_shots_simple_bigstack[i]
     plt.plot(angle,refl, zorder=1, marker='o', markersize=5, linestyle='none')
-    plt.errorbar(np.rad2deg(primary_lithic_smallstacks[i].angle), ref_shots_simple_smallstack[i], yerr=[ref_shots_simple_smallstack_lower_error[i], ref_shots_simple_smallstack_upper_error[i]], zorder=0, fmt='none', ecolor='k', capsize=3)
+    plt.errorbar(np.rad2deg(primary_lithic_bigstack[i].angle), ref_shots_simple_bigstack[i], yerr=[ref_shots_simple_bigstack_lower_error[i], ref_shots_simple_bigstack_upper_error[i]], zorder=0, fmt='none', ecolor='k', capsize=3)
+
+
 
 # ref_stack_simple = pa.reflectivity(primary_lithic_fullstack, secondary_lithic_fullstack, 'simple', attn_coeff=2.7e-4, polarity='min')
 
