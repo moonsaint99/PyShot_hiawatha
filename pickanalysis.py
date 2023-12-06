@@ -99,14 +99,12 @@ def dir_lin_source_amplitudes(primary, inversion_results=0): # this should be re
 
 def simple_source_amplitude(primary, attn_coeff, inv_results):
     incidence_angle = fa.inc_angle(primary, inv_results[0])
-    print(np.rad2deg(incidence_angle))
     path_factor = np.cos(incidence_angle)/primary.dist
-    attn_coeff = -4e-2
     source_amplitude = np.abs(primary.amplitude)/path_factor/np.exp(attn_coeff*primary.dist)
     return source_amplitude
 
 
-def reflectivity(primary, secondary, source_amplitude, inv_results, attn_coeff=0, polarity='max',  attn_hi = 4e-4, attn_lo = 2e-4):
+def reflectivity(primary, secondary, source_amplitude, inv_results, attn_coeff=2.7e-4, attn_firn=-5.18e-2, polarity='max',  attn_hi = 4e-4, attn_lo = 2e-4):
     # Source amplitude calibration
     dir_lin_amp_results = dir_lin_source_amplitudes(primary, inv_results)
     if attn_coeff == 0:
@@ -124,7 +122,7 @@ def reflectivity(primary, secondary, source_amplitude, inv_results, attn_coeff=0
         source_amplitude = dir_lin_amp_results[1]
     elif source_amplitude == 'simple':
         source_type = 'simple'
-        source_amplitude = (simple_source_amplitude(primary, attn_coeff, inv_results))
+        source_amplitude = (simple_source_amplitude(primary, attn_firn, inv_results))
 
     # Geometric correction
     path_length = 2*np.sqrt((primary.dist/2)**2 + 477**2)
@@ -137,7 +135,6 @@ def reflectivity(primary, secondary, source_amplitude, inv_results, attn_coeff=0
     attn_corr_lo = np.exp(attn_lo*path_length)
 
     print('Source amplitude: ' + str(source_amplitude))
-    print('Reflection amplitude: ' + str(secondary.amplitude))
     print('Geometric correction: ' + str(1/geom_corr))
     print('Attenuation correction: ' + str(attn_corr))
 

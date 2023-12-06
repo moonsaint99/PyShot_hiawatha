@@ -18,6 +18,7 @@ def double_linear_exponential_fit(args): # returns fit of data to exponential fu
         ydata=tmin_array,
         #p0=np.array([0.85/100,0.035,1/1000,1.4, 1/3900]),
         p0=([0.011,0.04, 0.35, 0.005, 1/3630]),
+        bounds=([0, 0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf, np.inf]),
         maxfev=10000000
     )
 
@@ -30,6 +31,13 @@ def double_linear_exponential_slope(x, params):  # This will accept a tuple of p
 
 
 def firn_depth_vs_velocity(dist, params):
+    '''
+    This function calculates the maximum depth reached by rays traveling a given source-receiver offset
+    It then gives the velocity at that depth
+    :param dist:
+    :param params:
+    :return:
+    '''
     # dist is the source-receiver offset for which you want to calculate
     # the maximum depth of the raypath, and the velocity at that maximum depth
     # If dist is an array, this will output an array of depths and velocities

@@ -12,7 +12,7 @@
 from load_segy import loadshots
 
 import matplotlib as mpl
-mpl.use('macosx')
+# mpl.use('macosx')
 import matplotlib.pyplot as plt
 import obspy as op
 import numpy as np
@@ -20,7 +20,7 @@ import scipy as sp
 import os
 
 # Load all .su files in the directory of choice into a dictionary of ObsPy Stream objects.
-lithic_smallstack_streams = loadshots("lithic_smallstack_streams/abs/")
+# lithic_smallstack_streams = loadshots("lithic_smallstack_streams/abs/")
 
 # Helper functions
 def add_pick(pick, pickdict):
@@ -62,7 +62,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     for trace in stream:
         trace_maxvals.append(np.max(np.abs(trace.data)))
     maxamp = np.max(trace_maxvals)
-    streamfig = plt.figure(figsize=(4, 6))
+    streamfig = plt.figure(figsize=(12, 8))
     stream.plot(type='section', scale=1, fig=streamfig, time_down=True, fillcolors=('blue', 'red'), color='black',
                 size=(600, 800))
     ax = plt.gca()
@@ -111,10 +111,12 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
     peaks = []
     peaktimes = []
     for trace in stream_original:
-        peakindices = sp.signal.find_peaks(np.abs(trace.data))[0]
-        peaks.append(peakindices)
-        peaktimes_array = trace.stats.delta * peakindices
-        peaktimes.append(peaktimes_array.tolist())
+        peakindices = sp.signal.find_peaks(trace.data)[0]
+        troughindices = sp.signal.find_peaks(-trace.data)[0]
+        supremaindices = np.concatenate((peakindices, troughindices))
+        peaks.append(supremaindices)
+        suprematimes_array = trace.stats.delta * supremaindices
+        peaktimes.append(suprematimes_array.tolist())
 
     # Find peak based on cursor coords
     def cursor_peakfinder(event):
@@ -296,7 +298,7 @@ def Pick(stream_input, filename="Record Section", outfile="picks.csv"):
                 for key in key_pairs:
                     f.write("%s,%s,%s,%s\n" % (key*1000, pickdict2[key][0], pickdict2[key][1], pickdict2[key][2]))
             print('Picks saved to ' + output_2)
-        if event.key == 'g':
+        if event.key == 'c':
             # Save the picks to a csv file
             output_1 = outfile_dir + '/firn_' + outfile_name
             with open(output_1, 'w') as f:
